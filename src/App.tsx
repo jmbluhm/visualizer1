@@ -53,8 +53,8 @@ function App() {
         <Box
           sx={{
             width: { xs: '100%', md: 400 },
-            height: { xs: '50%', md: '100%' },
-            position: 'fixed',
+            height: { xs: 'auto', md: '100%' },
+            position: { xs: 'fixed', md: 'relative' },
             right: 0,
             bottom: { xs: 0, md: 'auto' },
             bgcolor: 'background.paper',
@@ -62,6 +62,8 @@ function App() {
             borderTop: { xs: 1, md: 0 },
             borderColor: 'divider',
             overflow: 'auto',
+            zIndex: 1,
+            maxHeight: { xs: '50vh', md: '100%' },
           }}
         >
           <ControlsPanel

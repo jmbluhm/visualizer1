@@ -1,5 +1,5 @@
-import { Box, Slider, Typography, IconButton, Stack, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Divider } from '@mui/material';
-import { PlayArrow, Pause, Refresh, Download } from '@mui/icons-material';
+import { Box, Slider, Typography, IconButton, Stack, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Divider, Collapse } from '@mui/material';
+import { PlayArrow, Pause, Refresh, Download, ExpandMore, ExpandLess } from '@mui/icons-material';
 import { 
   SpirographParams, 
   GRADIENT_PRESETS,
@@ -12,6 +12,7 @@ import {
   EllipseParams,
   FixedShapeConfig
 } from '../types';
+import { useState } from 'react';
 
 interface Props {
   params: SpirographParams;
@@ -34,6 +35,8 @@ export const ControlsPanel = ({
   onDownload,
   onShowGuidesChange
 }: Props) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
   const handleSliderChange = (param: keyof SpirographParams) => (
     _: Event,
     value: number | number[]
@@ -278,10 +281,13 @@ export const ControlsPanel = ({
 
   return (
     <Box sx={{ p: 2 }}>
-      {/* Header */}
+      {/* Header with collapse button */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>Spirograph</Typography>
         <Stack direction="row" spacing={1}>
+          <IconButton onClick={() => setIsExpanded(!isExpanded)} size="small">
+            {isExpanded ? <ExpandLess fontSize="small" /> : <ExpandMore fontSize="small" />}
+          </IconButton>
           <IconButton onClick={onPlayPause} size="small">
             {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
           </IconButton>
@@ -296,121 +302,83 @@ export const ControlsPanel = ({
 
       <Divider sx={{ mb: 2 }} />
 
-      {/* Shape Selection */}
-      <Box sx={{ mb: 2 }}>
-        <FormControl fullWidth size="small">
-          <InputLabel>Shape</InputLabel>
-          <Select
-            value={params.fixedShape.type}
-            onChange={handleShapeTypeChange}
-            label="Shape"
-          >
-            <MenuItem value="circle">Circle</MenuItem>
-            <MenuItem value="square">Square</MenuItem>
-            <MenuItem value="star">Star</MenuItem>
-            <MenuItem value="hexagon">Hexagon</MenuItem>
-            <MenuItem value="ellipse">Ellipse</MenuItem>
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Shape Parameters */}
-      {renderShapeControls()}
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Guide Shapes Toggle */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="caption" color="text.secondary">Guide Shapes</Typography>
-        <Slider
-          value={showGuides ? 1 : 0}
-          onChange={(_, value) => onShowGuidesChange(value === 1)}
-          min={0}
-          max={1}
-          step={1}
-          size="small"
-          marks={[
-            { value: 0, label: 'Off' },
-            { value: 1, label: 'On' }
-          ]}
-        />
-      </Box>
-
-      {/* Moving Circle Controls */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="caption" color="text.secondary">Moving Circle Radius</Typography>
-        <Slider
-          value={params.movingShape.params.radius}
-          onChange={handleMovingCircleChange('radius')}
-          min={10}
-          max={100}
-          step={1}
-          size="small"
-        />
-        <Typography variant="caption" color="text.secondary">Pen Distance</Typography>
-        <Slider
-          value={params.penDistance}
-          onChange={handleSliderChange('penDistance')}
-          min={0}
-          max={150}
-          step={1}
-          size="small"
-        />
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
-
-      {/* Color Styles */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="subtitle2" sx={{ mb: 1 }}>Color Styles</Typography>
-        
-        {/* Background Color */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary">Background Color</Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
-            <input
-              type="color"
-              value={params.backgroundColor}
-              onChange={handleBackgroundColorChange}
-              style={{
-                width: '30px',
-                height: '30px',
-                padding: '0',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {params.backgroundColor}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Pen Color Type */}
+      <Collapse in={isExpanded}>
+        {/* Shape Selection */}
         <Box sx={{ mb: 2 }}>
           <FormControl fullWidth size="small">
-            <InputLabel>Pen Color Style</InputLabel>
+            <InputLabel>Shape</InputLabel>
             <Select
-              value={params.penColor.type}
-              onChange={handlePenColorTypeChange}
-              label="Pen Color Style"
+              value={params.fixedShape.type}
+              onChange={handleShapeTypeChange}
+              label="Shape"
             >
-              <MenuItem value="solid">Solid Color</MenuItem>
-              <MenuItem value="gradient">Gradient</MenuItem>
+              <MenuItem value="circle">Circle</MenuItem>
+              <MenuItem value="square">Square</MenuItem>
+              <MenuItem value="star">Star</MenuItem>
+              <MenuItem value="hexagon">Hexagon</MenuItem>
+              <MenuItem value="ellipse">Ellipse</MenuItem>
             </Select>
           </FormControl>
         </Box>
 
-        {/* Pen Color Controls */}
-        {params.penColor.type === 'solid' ? (
+        {/* Shape Parameters */}
+        {renderShapeControls()}
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Guide Shapes Toggle */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary">Guide Shapes</Typography>
+          <Slider
+            value={showGuides ? 1 : 0}
+            onChange={(_, value) => onShowGuidesChange(value === 1)}
+            min={0}
+            max={1}
+            step={1}
+            size="small"
+            marks={[
+              { value: 0, label: 'Off' },
+              { value: 1, label: 'On' }
+            ]}
+          />
+        </Box>
+
+        {/* Moving Circle Controls */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary">Moving Circle Radius</Typography>
+          <Slider
+            value={params.movingShape.params.radius}
+            onChange={handleMovingCircleChange('radius')}
+            min={10}
+            max={100}
+            step={1}
+            size="small"
+          />
+          <Typography variant="caption" color="text.secondary">Pen Distance</Typography>
+          <Slider
+            value={params.penDistance}
+            onChange={handleSliderChange('penDistance')}
+            min={0}
+            max={150}
+            step={1}
+            size="small"
+          />
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        {/* Color Styles */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Color Styles</Typography>
+          
+          {/* Background Color */}
           <Box sx={{ mb: 2 }}>
-            <Typography variant="caption" color="text.secondary">Pen Color</Typography>
+            <Typography variant="caption" color="text.secondary">Background Color</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
               <input
                 type="color"
-                value={typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
-                onChange={handlePenColorChange}
+                value={params.backgroundColor}
+                onChange={handleBackgroundColorChange}
                 style={{
                   width: '30px',
                   height: '30px',
@@ -421,65 +389,105 @@ export const ControlsPanel = ({
                 }}
               />
               <Typography variant="caption" color="text.secondary">
-                {typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
+                {params.backgroundColor}
               </Typography>
             </Box>
           </Box>
-        ) : (
+
+          {/* Pen Color Type */}
           <Box sx={{ mb: 2 }}>
             <FormControl fullWidth size="small">
-              <InputLabel>Gradient</InputLabel>
+              <InputLabel>Pen Color Style</InputLabel>
               <Select
-                value={GRADIENT_PRESETS.findIndex(preset => 
-                  JSON.stringify(preset) === JSON.stringify(params.penColor.value)
-                ).toString()}
-                onChange={handlePenGradientChange}
-                label="Gradient"
+                value={params.penColor.type}
+                onChange={handlePenColorTypeChange}
+                label="Pen Color Style"
               >
-                {GRADIENT_PRESETS.map((preset, index) => (
-                  <MenuItem key={index} value={index.toString()}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box
-                        sx={{
-                          width: 30,
-                          height: 15,
-                          background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`,
-                          borderRadius: 1
-                        }}
-                      />
-                      <Typography variant="caption">Gradient {index + 1}</Typography>
-                    </Box>
-                  </MenuItem>
-                ))}
+                <MenuItem value="solid">Solid Color</MenuItem>
+                <MenuItem value="gradient">Gradient</MenuItem>
               </Select>
             </FormControl>
           </Box>
-        )}
-      </Box>
 
-      <Divider sx={{ my: 2 }} />
+          {/* Pen Color Controls */}
+          {params.penColor.type === 'solid' ? (
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="caption" color="text.secondary">Pen Color</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+                <input
+                  type="color"
+                  value={typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
+                  onChange={handlePenColorChange}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    padding: '0',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            <Box sx={{ mb: 2 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Gradient</InputLabel>
+                <Select
+                  value={GRADIENT_PRESETS.findIndex(preset => 
+                    JSON.stringify(preset) === JSON.stringify(params.penColor.value)
+                  ).toString()}
+                  onChange={handlePenGradientChange}
+                  label="Gradient"
+                >
+                  {GRADIENT_PRESETS.map((preset, index) => (
+                    <MenuItem key={index} value={index.toString()}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Box
+                          sx={{
+                            width: 30,
+                            height: 15,
+                            background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`,
+                            borderRadius: 1
+                          }}
+                        />
+                        <Typography variant="caption">Gradient {index + 1}</Typography>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+        </Box>
 
-      {/* Drawing Settings */}
-      <Box>
-        <Typography variant="caption" color="text.secondary">Animation Speed</Typography>
-        <Slider
-          value={params.animationSpeed}
-          onChange={handleSliderChange('animationSpeed')}
-          min={0.001}
-          max={1.0}
-          step={0.01}
-          size="small"
-        />
-        <Typography variant="caption" color="text.secondary">Line Width</Typography>
-        <Slider
-          value={params.lineWidth}
-          onChange={handleSliderChange('lineWidth')}
-          min={1}
-          max={10}
-          step={0.5}
-          size="small"
-        />
-      </Box>
+        <Divider sx={{ my: 2 }} />
+
+        {/* Drawing Settings */}
+        <Box>
+          <Typography variant="caption" color="text.secondary">Animation Speed</Typography>
+          <Slider
+            value={params.animationSpeed}
+            onChange={handleSliderChange('animationSpeed')}
+            min={0.001}
+            max={1.0}
+            step={0.01}
+            size="small"
+          />
+          <Typography variant="caption" color="text.secondary">Line Width</Typography>
+          <Slider
+            value={params.lineWidth}
+            onChange={handleSliderChange('lineWidth')}
+            min={1}
+            max={10}
+            step={0.5}
+            size="small"
+          />
+        </Box>
+      </Collapse>
     </Box>
   );
 }; 
