@@ -116,6 +116,13 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       context.translate(canvas.width / 2, canvas.height / 2);
+      
+      // Clear canvas with white background
+      context.fillStyle = '#ffffff';
+      context.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+      
+      // Draw fixed shape guide
+      drawFixedShape(context, params.fixedShape);
     };
 
     resizeCanvas();
@@ -124,7 +131,144 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, []);
+  }, [params.fixedShape]);
+
+  const drawFixedShape = (ctx: CanvasRenderingContext2D, fixedShape: FixedShapeConfig) => {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
+    ctx.lineWidth = 1;
+
+    switch (fixedShape.type) {
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(0, 0, fixedShape.params.radius, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      case 'square': {
+        const { edgeLength, cornerRadius } = fixedShape.params;
+        const halfEdge = edgeLength / 2;
+        if (cornerRadius > 0) {
+          ctx.beginPath();
+          ctx.moveTo(-halfEdge + cornerRadius, -halfEdge);
+          ctx.lineTo(halfEdge - cornerRadius, -halfEdge);
+          ctx.arc(halfEdge - cornerRadius, -halfEdge + cornerRadius, cornerRadius, -Math.PI / 2, 0);
+          ctx.lineTo(halfEdge, halfEdge - cornerRadius);
+          ctx.arc(halfEdge - cornerRadius, halfEdge - cornerRadius, cornerRadius, 0, Math.PI / 2);
+          ctx.lineTo(-halfEdge + cornerRadius, halfEdge);
+          ctx.arc(-halfEdge + cornerRadius, halfEdge - cornerRadius, cornerRadius, Math.PI / 2, Math.PI);
+          ctx.lineTo(-halfEdge, -halfEdge + cornerRadius);
+          ctx.arc(-halfEdge + cornerRadius, -halfEdge + cornerRadius, cornerRadius, Math.PI, -Math.PI / 2);
+          ctx.stroke();
+        } else {
+          ctx.strokeRect(-halfEdge, -halfEdge, edgeLength, edgeLength);
+        }
+        break;
+      }
+      case 'star': {
+        const { outerRadius, innerRadius, points } = fixedShape.params;
+        ctx.beginPath();
+        for (let i = 0; i < points * 2; i++) {
+          const radius = i % 2 === 0 ? outerRadius : innerRadius;
+          const angle = (i * Math.PI) / points;
+          const x = radius * Math.cos(angle);
+          const y = radius * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+      }
+      case 'hexagon': {
+        const { sideLength, cornerRadius } = fixedShape.params;
+        const radius = sideLength;
+        if (cornerRadius > 0) {
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const nextAngle = ((i + 1) * Math.PI) / 3;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            const nextX = radius * Math.cos(nextAngle);
+            const nextY = radius * Math.sin(nextAngle);
+            
+            if (i === 0) {
+              ctx.moveTo(x, y);
+            }
+            
+            const dx = nextX - x;
+            const dy = nextY - y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const radiusRatio = cornerRadius / distance;
+            
+            const p1x = x + dx * radiusRatio;
+            const p1y = y + dy * radiusRatio;
+            const p2x = nextX - dx * radiusRatio;
+            const p2y = nextY - dy * radiusRatio;
+            
+            ctx.lineTo(p1x, p1y);
+            ctx.arcTo(nextX, nextY, p2x, p2y, cornerRadius);
+            ctx.lineTo(p2x, p2y);
+          }
+          ctx.closePath();
+        } else {
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * Math.PI) / 3;
+            const x = radius * Math.cos(angle);
+            const y = radius * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+        }
+        ctx.stroke();
+        break;
+      }
+      case 'ellipse': {
+        const { majorAxis, minorAxis, rotation } = fixedShape.params;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, majorAxis / 2, minorAxis / 2, rotation * Math.PI / 180, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+      }
+    }
+    ctx.restore();
+  };
+
+  const drawMovingCircle = (ctx: CanvasRenderingContext2D, currentAngle: number) => {
+    const { movingShape, penDistance, fixedShape } = params;
+    const movingRadius = movingShape.params.radius;
+    const R = getFixedShapeRadius(fixedShape);
+
+    // Calculate center of moving circle
+    const centerX = (R - movingRadius) * Math.cos(currentAngle);
+    const centerY = (R - movingRadius) * Math.sin(currentAngle);
+
+    // Draw moving circle
+    ctx.save();
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, movingRadius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Draw pen point
+    const penX = centerX + penDistance * Math.cos(((R - movingRadius) / movingRadius) * currentAngle);
+    const penY = centerY - penDistance * Math.sin(((R - movingRadius) / movingRadius) * currentAngle);
+    ctx.beginPath();
+    ctx.arc(penX, penY, 2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+    ctx.fill();
+
+    // Draw line from center to pen
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(penX, penY);
+    ctx.strokeStyle = 'rgba(128, 128, 128, 0.1)';
+    ctx.stroke();
+    ctx.restore();
+  };
 
   useEffect(() => {
     if (!contextRef.current) return;
@@ -158,8 +302,12 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
         ctx.rotate(fixedShape.params.rotation * Math.PI / 180);
       }
 
+      // Draw guide shapes
+      drawFixedShape(ctx, fixedShape);
+      drawMovingCircle(ctx, angleRef.current);
+
       // Use timestamp for smoother animation
-      const t = deltaTime * 0.005; // Increase time scaling factor for faster animation
+      const t = deltaTime * 0.005;
       const currentAngle = angleRef.current;
       const nextAngle = currentAngle + (params.animationSpeed * t);
 
