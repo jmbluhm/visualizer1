@@ -83,7 +83,11 @@ export interface SpirographParams {
   penDistance: number;
   animationSpeed: number;
   lineWidth: number;
-  color: string | GradientColor;
+  backgroundColor: string;
+  penColor: {
+    type: 'solid' | 'gradient';
+    value: string | GradientColor;
+  };
 }
 
 export type GradientColor = {
@@ -106,7 +110,11 @@ export const DEFAULT_PARAMS: SpirographParams = {
   penDistance: 0.5,
   animationSpeed: 1,
   lineWidth: 2,
-  color: '#000000'
+  backgroundColor: '#ffffff',
+  penColor: {
+    type: 'solid',
+    value: '#000000'
+  }
 };
 
 export const GRADIENT_PRESETS: GradientColor[] = [

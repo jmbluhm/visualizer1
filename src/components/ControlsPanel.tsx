@@ -56,28 +56,45 @@ export const ControlsPanel = ({
     });
   };
 
-  const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     onParamsChange({
       ...params,
-      color: event.target.value
+      backgroundColor: event.target.value
     });
   };
 
-  const handleGradientChange = (event: SelectChangeEvent<string>) => {
+  const handlePenColorTypeChange = (event: SelectChangeEvent<string>) => {
+    const newType = event.target.value as 'solid' | 'gradient';
+    onParamsChange({
+      ...params,
+      penColor: {
+        type: newType,
+        value: newType === 'solid' ? '#000000' : params.penColor.value
+      }
+    });
+  };
+
+  const handlePenColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onParamsChange({
+      ...params,
+      penColor: {
+        ...params.penColor,
+        value: event.target.value
+      }
+    });
+  };
+
+  const handlePenGradientChange = (event: SelectChangeEvent<string>) => {
     const index = parseInt(event.target.value);
-    if (index === 0) {
+    const selectedPreset = GRADIENT_PRESETS[index];
+    if (selectedPreset) {
       onParamsChange({
         ...params,
-        color: '#000000'
+        penColor: {
+          ...params.penColor,
+          value: selectedPreset
+        }
       });
-    } else {
-      const selectedPreset = GRADIENT_PRESETS[index - 1];
-      if (selectedPreset) {
-        onParamsChange({
-          ...params,
-          color: selectedPreset
-        });
-      }
     }
   };
 
@@ -123,15 +140,6 @@ export const ControlsPanel = ({
       fixedShape: newConfig
     });
   };
-
-  const currentColor = typeof params.color === 'string' ? params.color : params.color.colors[0].color;
-  const currentGradientIndex = typeof params.color === 'string' ? '0' : 
-    (GRADIENT_PRESETS.findIndex(preset => 
-      preset.colors.every((c, i) => {
-        const color = params.color;
-        return typeof color !== 'string' && c.color === color.colors[i].color;
-      })
-    ) + 1).toString();
 
   const renderShapeControls = () => {
     switch (params.fixedShape.type) {
@@ -331,40 +339,18 @@ export const ControlsPanel = ({
 
       <Divider sx={{ my: 2 }} />
 
-      {/* Color Controls */}
+      {/* Color Styles */}
       <Box sx={{ mb: 2 }}>
-        <FormControl fullWidth size="small">
-          <InputLabel>Color</InputLabel>
-          <Select
-            value={currentGradientIndex}
-            onChange={handleGradientChange}
-            label="Color"
-          >
-            <MenuItem value="0">Solid</MenuItem>
-            {GRADIENT_PRESETS.map((preset, index) => (
-              <MenuItem key={index} value={index.toString()}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box
-                    sx={{
-                      width: 30,
-                      height: 15,
-                      background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`,
-                      borderRadius: 1
-                    }}
-                  />
-                  <Typography variant="caption">Gradient {index + 1}</Typography>
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        {currentGradientIndex === '0' && (
+        <Typography variant="subtitle2" sx={{ mb: 1 }}>Color Styles</Typography>
+        
+        {/* Background Color */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary">Background Color</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
             <input
               type="color"
-              value={currentColor}
-              onChange={handleColorChange}
+              value={params.backgroundColor}
+              onChange={handleBackgroundColorChange}
               style={{
                 width: '30px',
                 height: '30px',
@@ -375,8 +361,77 @@ export const ControlsPanel = ({
               }}
             />
             <Typography variant="caption" color="text.secondary">
-              {currentColor}
+              {params.backgroundColor}
             </Typography>
+          </Box>
+        </Box>
+
+        {/* Pen Color Type */}
+        <Box sx={{ mb: 2 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel>Pen Color Style</InputLabel>
+            <Select
+              value={params.penColor.type}
+              onChange={handlePenColorTypeChange}
+              label="Pen Color Style"
+            >
+              <MenuItem value="solid">Solid Color</MenuItem>
+              <MenuItem value="gradient">Gradient</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        {/* Pen Color Controls */}
+        {params.penColor.type === 'solid' ? (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Pen Color</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+              <input
+                type="color"
+                value={typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
+                onChange={handlePenColorChange}
+                style={{
+                  width: '30px',
+                  height: '30px',
+                  padding: '0',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              />
+              <Typography variant="caption" color="text.secondary">
+                {typeof params.penColor.value === 'string' ? params.penColor.value : params.penColor.value.colors[0].color}
+              </Typography>
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ mb: 2 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel>Gradient</InputLabel>
+              <Select
+                value={GRADIENT_PRESETS.findIndex(preset => 
+                  JSON.stringify(preset) === JSON.stringify(params.penColor.value)
+                ).toString()}
+                onChange={handlePenGradientChange}
+                label="Gradient"
+              >
+                {GRADIENT_PRESETS.map((preset, index) => (
+                  <MenuItem key={index} value={index.toString()}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Box
+                        sx={{
+                          width: 30,
+                          height: 15,
+                          background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`,
+                          borderRadius: 1
+                        }}
+                      />
+                      <Typography variant="caption">Gradient {index + 1}</Typography>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Box>
         )}
       </Box>

@@ -11,12 +11,12 @@ export interface SpirographCanvasRef {
   downloadImage: () => void;
 }
 
-const getColorFromGradient = (gradient: GradientColor | string, progress: number): string => {
-  if (typeof gradient === 'string') {
-    return gradient;
+const getColorFromGradient = (color: string | GradientColor, progress: number): string => {
+  if (typeof color === 'string') {
+    return color;
   }
 
-  const { colors } = gradient;
+  const { colors } = color;
   if (colors.length === 1) {
     return colors[0].color;
   }
@@ -97,7 +97,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = params.backgroundColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
 
@@ -589,7 +589,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           const point = calculatePoint(interpolatedAngle);
           
           const colorProgress = (interpolatedAngle % (Math.PI * 2)) / (Math.PI * 2);
-          ctx.strokeStyle = getColorFromGradient(params.color, colorProgress);
+          ctx.strokeStyle = getColorFromGradient(params.penColor.value, colorProgress);
           ctx.lineWidth = params.lineWidth;
           ctx.lineCap = 'round';
           ctx.lineJoin = 'round';
@@ -635,7 +635,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           left: 0,
           width: '100%',
           height: '100%',
-          background: '#ffffff',
+          background: params.backgroundColor,
           cursor: isDraggingRef.current ? 'grabbing' : 'grab'
         }}
       />
