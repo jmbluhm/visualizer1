@@ -166,7 +166,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       // Calculate initial scale to fit the shape
       const fixedShapeRadius = getFixedShapeRadius(params.fixedShape);
       const maxDimension = Math.min(canvas.width, canvas.height);
-      const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of visible canvas size
+      const initialScale = (maxDimension * 0.8) / (fixedShapeRadius * 2); // Increased from 0.4 to 0.8 to make shapes larger
       
       console.log('Canvas setup:', {
         canvasWidth: canvas.width,
@@ -206,8 +206,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
   const drawFixedShape = (ctx: CanvasRenderingContext2D, fixedShape: FixedShapeConfig) => {
     ctx.save();
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // Made guide shapes more visible
+    ctx.lineWidth = 2; // Made guide shapes thicker
 
     console.log('Drawing fixed shape:', {
       type: fixedShape.type,
@@ -332,8 +332,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
     // Draw moving circle
     ctx.save();
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'; // Made guide shapes more visible
+    ctx.lineWidth = 2; // Made guide shapes thicker
     ctx.beginPath();
     ctx.arc(centerX, centerY, movingRadius, 0, Math.PI * 2);
     ctx.stroke();
@@ -343,14 +343,14 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     const penY = centerY - penDistance * Math.sin(((R - movingRadius) / movingRadius) * currentAngle);
     ctx.beginPath();
     ctx.arc(penX, penY, 2, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+    ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // Made pen point more visible
     ctx.fill();
 
     // Draw line from center to pen
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.lineTo(penX, penY);
-    ctx.strokeStyle = 'rgba(128, 128, 128, 0.1)';
+    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.stroke();
     ctx.restore();
   };
@@ -564,6 +564,11 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       ctx.fill();
       ctx.restore();
 
+      // Reset transforms before applying new ones
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+      // Apply center translation
       ctx.translate(canvasWidth / 2, canvasHeight / 2);
       overlayCtx.translate(overlayWidth / 2, overlayHeight / 2);
 
@@ -571,16 +576,22 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       ctx.scale(scale, scale);
       overlayCtx.scale(scale, scale);
 
+      console.log('Canvas transforms:', {
+        main: ctx.getTransform(),
+        overlay: overlayCtx.getTransform()
+      });
+
       // Draw guide shapes on the overlay canvas if enabled
       if (showGuides) {
+        console.log('Drawing guide shapes');
         drawFixedShape(overlayCtx, params.fixedShape);
         drawMovingCircle(overlayCtx, angleRef.current);
       }
 
       // Use timestamp for smoother animation with adjusted speed calculation
-      const t = timestamp * 0.0005; // Reduced from 0.005 to slow down the base speed
+      const t = timestamp * 0.0005;
       const currentAngle = angleRef.current;
-      const nextAngle = currentAngle + (params.animationSpeed * t * 0.1); // Added 0.1 multiplier to allow for much slower speeds
+      const nextAngle = currentAngle + (params.animationSpeed * t * 0.1);
 
       // Draw the actual spirograph on the main canvas
       if (lastPointRef.current) {
@@ -610,6 +621,13 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const newPoint = calculatePoint(nextAngle);
       lastPointRef.current = newPoint;
       angleRef.current = nextAngle;
+
+      console.log('Drawing state:', {
+        currentAngle,
+        nextAngle,
+        lastPoint: lastPointRef.current,
+        newPoint
+      });
 
       ctx.restore();
       overlayCtx.restore();
