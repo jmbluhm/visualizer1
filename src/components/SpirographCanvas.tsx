@@ -536,12 +536,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const overlayCtx = overlayContextRef.current;
       if (!ctx || !overlayCtx || !overlayCanvasRef.current) return;
 
-      // Clear both canvases
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
-      ctx.restore();
-
+      // Clear only the overlay canvas for guide shapes
       overlayCtx.save();
       overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
       overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
@@ -565,10 +560,10 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       drawFixedShape(overlayCtx, params.fixedShape);
       drawMovingCircle(overlayCtx, angleRef.current);
 
-      // Use timestamp for smoother animation
-      const t = timestamp * 0.005;
+      // Use timestamp for smoother animation with adjusted speed calculation
+      const t = timestamp * 0.0005; // Reduced from 0.005 to slow down the base speed
       const currentAngle = angleRef.current;
-      const nextAngle = currentAngle + (params.animationSpeed * t);
+      const nextAngle = currentAngle + (params.animationSpeed * t * 0.1); // Added 0.1 multiplier to allow for much slower speeds
 
       // Draw the actual spirograph on the main canvas
       if (lastPointRef.current) {
@@ -578,7 +573,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
         for (let i = 1; i <= steps; i++) {
           const progress = i / steps;
-          const interpolatedAngle = currentAngle + (params.animationSpeed * t * progress);
+          const interpolatedAngle = currentAngle + (params.animationSpeed * t * 0.1 * progress);
           const point = calculatePoint(interpolatedAngle);
           
           const colorProgress = (interpolatedAngle % (Math.PI * 2)) / (Math.PI * 2);
