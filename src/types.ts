@@ -1,17 +1,13 @@
 export type FixedShape = 'circle' | 'square' | 'star' | 'triangle' | 'oval';
 
-interface BaseShapeConfig {
-  type: FixedShape;
-}
-
-export interface CircleConfig extends BaseShapeConfig {
+export interface CircleConfig {
   type: 'circle';
   params: {
     radius: number;
   };
 }
 
-export interface SquareConfig extends BaseShapeConfig {
+export interface SquareConfig {
   type: 'square';
   params: {
     edgeLength: number;
@@ -19,7 +15,7 @@ export interface SquareConfig extends BaseShapeConfig {
   };
 }
 
-export interface StarConfig extends BaseShapeConfig {
+export interface StarConfig {
   type: 'star';
   params: {
     outerRadius: number;
@@ -28,7 +24,7 @@ export interface StarConfig extends BaseShapeConfig {
   };
 }
 
-export interface TriangleConfig extends BaseShapeConfig {
+export interface TriangleConfig {
   type: 'triangle';
   params: {
     sideLength: number;
@@ -36,7 +32,7 @@ export interface TriangleConfig extends BaseShapeConfig {
   };
 }
 
-export interface OvalConfig extends BaseShapeConfig {
+export interface OvalConfig {
   type: 'oval';
   params: {
     majorAxis: number;

@@ -106,7 +106,7 @@ const getEffectiveRadius = (fixedShape: FixedShapeConfig): number => {
 export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(
   ({ params, isPlaying }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const animationRef = useRef<number | undefined>();
+    const animationRef = useRef<number>(0);
     const angleRef = useRef<number>(0);
     const lastPointRef = useRef<Point | null>(null);
     const frameCountRef = useRef<number>(0);
@@ -274,30 +274,15 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(
       const canvas = canvasRef.current;
       if (!ctx || !canvas) return;
 
-      const scale = Math.min(
-        canvas.width / (window.devicePixelRatio || 1),
-        canvas.height / (window.devicePixelRatio || 1)
-      ) * 0.2;
-
-      // Calculate new point
-      const newAngle = angleRef.current + params.speed;
-      const currentPoint = calculatePoint(angleRef.current);
-      const nextPoint = calculatePoint(newAngle);
-
-      // Scale points
-      const scaledCurrent = {
-        x: currentPoint.x,
-        y: currentPoint.y
-      };
-
-      const scaledNext = {
-        x: nextPoint.x,
-        y: nextPoint.y
+      const point = calculatePoint(angleRef.current);
+      const scaledPoint = {
+        x: point.x,
+        y: point.y
       };
 
       if (lastPointRef.current) {
         // Calculate the distance between points
-        const dist = distance(scaledCurrent, scaledNext);
+        const dist = distance(scaledPoint, lastPointRef.current);
         
         // More aggressive interpolation with smaller threshold
         const minDistance = 1; // Reduced from 2 to 1 for more frequent interpolation
@@ -310,7 +295,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(
           
           for (let i = 0; i <= steps; i++) {
             const t = i / steps;
-            const interpolatedPoint = lerp(scaledCurrent, scaledNext, t);
+            const interpolatedPoint = lerp(scaledPoint, lastPointRef.current, t);
             
             // Get color for this point
             const interpolatedAngle = angleRef.current + (params.speed * t);
@@ -350,13 +335,13 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(
           ctx.lineJoin = 'round';
           
           ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-          ctx.lineTo(scaledNext.x, scaledNext.y);
+          ctx.lineTo(scaledPoint.x, scaledPoint.y);
           ctx.stroke();
         }
       }
 
-      lastPointRef.current = scaledNext;
-      angleRef.current = newAngle;
+      lastPointRef.current = scaledPoint;
+      angleRef.current = (angleRef.current + params.speed) % (Math.PI * 2);
       frameCountRef.current += 1;
 
       if (isPlaying) {

@@ -79,7 +79,9 @@ export const ControlsPanel = ({
 
   const handleShapeTypeChange = (event: SelectChangeEvent<FixedShape>) => {
     const newType = event.target.value as FixedShape;
-    const newShape = FIXED_SHAPE_DEFAULTS[newType];
+    const newShape = {
+      ...FIXED_SHAPE_DEFAULTS[newType]
+    };
     onParamsChange({
       ...params,
       fixedShape: newShape
