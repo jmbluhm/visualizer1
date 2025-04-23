@@ -76,7 +76,6 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
   const overlayContextRef = useRef<CanvasRenderingContext2D | null>(null);
   const angleRef = useRef<number>(0);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const lastTimeRef = useRef<number>(0);
   const requestRef = useRef<number | undefined>(undefined);
 
   // Add state for pan and zoom
@@ -379,8 +378,6 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           if (cornerRadius > 0) {
             // Handle rounded corners
             const cornerAngle = Math.atan2(cornerRadius, halfEdge - cornerRadius);
-            const effectiveRadius = Math.sqrt((halfEdge - cornerRadius) ** 2 + (halfEdge - cornerRadius) ** 2);
-
             if (normalizedAngle < cornerAngle || normalizedAngle >= 2 * Math.PI - cornerAngle) {
               // Right edge
               baseX = halfEdge;
@@ -457,10 +454,6 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
           const radius1 = currentPoint % 2 === 0 ? outerRadius : innerRadius;
           const radius2 = currentPoint % 2 === 0 ? innerRadius : outerRadius;
-          const angle1 = (currentPoint * pointAngle);
-          const angle2 = ((currentPoint + 1) * pointAngle);
-
-          // Interpolate between the two radii
           const currentRadius = radius1 + (radius2 - radius1) * progress;
           baseX = currentRadius * Math.cos(normalizedAngle);
           baseY = currentRadius * Math.sin(normalizedAngle);
