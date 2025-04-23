@@ -129,6 +129,17 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
   useEffect(() => {
     if (!contextRef.current) return;
 
+    const calculatePoint = (angle: number) => {
+      const { movingShape, penDistance, fixedShape } = params;
+      const movingRadius = movingShape.params.radius;
+      const R = getFixedShapeRadius(fixedShape);
+
+      const x = (R - movingRadius) * Math.cos(angle) + penDistance * Math.cos(((R - movingRadius) / movingRadius) * angle);
+      const y = (R - movingRadius) * Math.sin(angle) - penDistance * Math.sin(((R - movingRadius) / movingRadius) * angle);
+      
+      return { x, y };
+    };
+
     const animate = (timestamp: number) => {
       const ctx = contextRef.current;
       if (!ctx) return;
@@ -140,9 +151,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const deltaTime = timestamp - lastTimeRef.current;
       lastTimeRef.current = timestamp;
 
-      const { movingShape, penDistance, fixedShape } = params;
-      const movingRadius = movingShape.params.radius;
-      const R = getFixedShapeRadius(fixedShape);
+      const { fixedShape } = params;
 
       if (fixedShape.type === 'ellipse') {
         ctx.save();
@@ -151,23 +160,42 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
       // Use timestamp for smoother animation
       const t = deltaTime * 0.005; // Increase time scaling factor for faster animation
-      const interpolatedAngle = angleRef.current + (params.animationSpeed * t);
-      angleRef.current = interpolatedAngle;
+      const currentAngle = angleRef.current;
+      const nextAngle = currentAngle + (params.animationSpeed * t);
 
-      const x = (R - movingRadius) * Math.cos(interpolatedAngle) + penDistance * Math.cos(((R - movingRadius) / movingRadius) * interpolatedAngle);
-      const y = (R - movingRadius) * Math.sin(interpolatedAngle) - penDistance * Math.sin(((R - movingRadius) / movingRadius) * interpolatedAngle);
+      // Add line smoothing settings
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.shadowBlur = 0.5;
+      ctx.shadowColor = typeof params.color === 'string' ? params.color : params.color.colors[0].color;
 
-      // Draw the line
+      // Interpolate points for smoother lines at high speeds
       if (lastPointRef.current) {
+        const steps = Math.max(1, Math.ceil(params.animationSpeed * 20)); // More interpolation points at higher speeds
         ctx.beginPath();
         ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
-        ctx.lineTo(x, y);
-        ctx.strokeStyle = getColorFromGradient(params.color, (interpolatedAngle % (Math.PI * 2)) / (Math.PI * 2));
-        ctx.lineWidth = params.lineWidth;
-        ctx.stroke();
+
+        for (let i = 1; i <= steps; i++) {
+          const progress = i / steps;
+          const interpolatedAngle = currentAngle + (params.animationSpeed * t * progress);
+          const point = calculatePoint(interpolatedAngle);
+          
+          // Get color for this segment
+          const colorProgress = (interpolatedAngle % (Math.PI * 2)) / (Math.PI * 2);
+          ctx.strokeStyle = getColorFromGradient(params.color, colorProgress);
+          ctx.lineWidth = params.lineWidth;
+          
+          ctx.lineTo(point.x, point.y);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(point.x, point.y);
+        }
       }
 
-      lastPointRef.current = { x, y };
+      // Update last point and angle
+      const newPoint = calculatePoint(nextAngle);
+      lastPointRef.current = newPoint;
+      angleRef.current = nextAngle;
 
       if (fixedShape.type === 'ellipse') {
         ctx.restore();
