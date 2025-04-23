@@ -1,4 +1,4 @@
-import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle, useState } from 'react';
 import { SpirographParams, GradientColor, FixedShapeConfig } from '../types';
 
 interface Props {
@@ -79,6 +79,15 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
   const lastTimeRef = useRef<number>(0);
   const requestRef = useRef<number | undefined>(undefined);
 
+  // Add state for pan and zoom
+  const [transform, setTransform] = useState({
+    x: 0,
+    y: 0,
+    scale: 1
+  });
+  const isDraggingRef = useRef(false);
+  const lastMousePosRef = useRef({ x: 0, y: 0 });
+
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     const ctx = contextRef.current;
@@ -150,11 +159,60 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       overlayContext.translate(overlayCanvas.width / 2, overlayCanvas.height / 2);
     };
 
+    const handleMouseDown = (e: MouseEvent) => {
+      isDraggingRef.current = true;
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+
+      const dx = e.clientX - lastMousePosRef.current.x;
+      const dy = e.clientY - lastMousePosRef.current.y;
+
+      setTransform(prev => ({
+        ...prev,
+        x: prev.x + dx,
+        y: prev.y + dy
+      }));
+
+      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY;
+      const scaleFactor = delta > 0 ? 0.9 : 1.1;
+      
+      // Calculate mouse position relative to canvas center
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left - canvas.width / 2;
+      const mouseY = e.clientY - rect.top - canvas.height / 2;
+
+      setTransform(prev => ({
+        x: prev.x + mouseX * (1 - scaleFactor),
+        y: prev.y + mouseY * (1 - scaleFactor),
+        scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
+      }));
+    };
+
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      canvas.removeEventListener('wheel', handleWheel);
     };
   }, []);
 
@@ -303,10 +361,181 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const movingRadius = movingShape.params.radius;
       const R = getFixedShapeRadius(fixedShape);
 
-      const x = (R - movingRadius) * Math.cos(angle) + penDistance * Math.cos(((R - movingRadius) / movingRadius) * angle);
-      const y = (R - movingRadius) * Math.sin(angle) - penDistance * Math.sin(((R - movingRadius) / movingRadius) * angle);
-      
-      return { x, y };
+      let baseX: number;
+      let baseY: number;
+
+      switch (fixedShape.type) {
+        case 'circle': {
+          baseX = R * Math.cos(angle);
+          baseY = R * Math.sin(angle);
+          break;
+        }
+        case 'square': {
+          const { edgeLength, cornerRadius } = fixedShape.params;
+          const halfEdge = edgeLength / 2;
+          const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+          const sideAngle = Math.PI / 2;
+
+          if (cornerRadius > 0) {
+            // Handle rounded corners
+            const cornerAngle = Math.atan2(cornerRadius, halfEdge - cornerRadius);
+            const effectiveRadius = Math.sqrt((halfEdge - cornerRadius) ** 2 + (halfEdge - cornerRadius) ** 2);
+
+            if (normalizedAngle < cornerAngle || normalizedAngle >= 2 * Math.PI - cornerAngle) {
+              // Right edge
+              baseX = halfEdge;
+              baseY = -halfEdge + cornerRadius + (normalizedAngle * (edgeLength - 2 * cornerRadius)) / sideAngle;
+            } else if (normalizedAngle < Math.PI / 2 + cornerAngle) {
+              // Bottom edge
+              baseX = halfEdge - cornerRadius - ((normalizedAngle - cornerAngle) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              baseY = halfEdge;
+            } else if (normalizedAngle < Math.PI + cornerAngle) {
+              // Left edge
+              baseX = -halfEdge;
+              baseY = halfEdge - cornerRadius - ((normalizedAngle - (Math.PI / 2 + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+            } else if (normalizedAngle < 3 * Math.PI / 2 + cornerAngle) {
+              // Top edge
+              baseX = -halfEdge + cornerRadius + ((normalizedAngle - (Math.PI + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              baseY = -halfEdge;
+            } else {
+              // Corner arcs
+              const cornerCenter = {
+                x: Math.sign(Math.cos(normalizedAngle)) * (halfEdge - cornerRadius),
+                y: Math.sign(Math.sin(normalizedAngle)) * (halfEdge - cornerRadius)
+              };
+              const cornerAngleOffset = normalizedAngle - Math.floor(normalizedAngle / sideAngle) * sideAngle;
+              baseX = cornerCenter.x + cornerRadius * Math.cos(cornerAngleOffset);
+              baseY = cornerCenter.y + cornerRadius * Math.sin(cornerAngleOffset);
+            }
+          } else {
+            // Handle sharp corners
+            const side = Math.floor(normalizedAngle / sideAngle);
+            const sideProgress = (normalizedAngle % sideAngle) / sideAngle;
+
+            switch (side) {
+              case 0: // Right side
+                baseX = halfEdge;
+                baseY = -halfEdge + edgeLength * sideProgress;
+                break;
+              case 1: // Bottom side
+                baseX = halfEdge - edgeLength * sideProgress;
+                baseY = halfEdge;
+                break;
+              case 2: // Left side
+                baseX = -halfEdge;
+                baseY = halfEdge - edgeLength * sideProgress;
+                break;
+              default: // Top side
+                baseX = -halfEdge + edgeLength * sideProgress;
+                baseY = -halfEdge;
+                break;
+            }
+          }
+          break;
+        }
+        case 'ellipse': {
+          const { majorAxis, minorAxis, rotation } = fixedShape.params;
+          const rotatedAngle = angle - rotation * Math.PI / 180;
+          baseX = (majorAxis / 2) * Math.cos(rotatedAngle);
+          baseY = (minorAxis / 2) * Math.sin(rotatedAngle);
+          
+          // Rotate the point back
+          const cos = Math.cos(rotation * Math.PI / 180);
+          const sin = Math.sin(rotation * Math.PI / 180);
+          const rotatedX = baseX * cos - baseY * sin;
+          const rotatedY = baseX * sin + baseY * cos;
+          baseX = rotatedX;
+          baseY = rotatedY;
+          break;
+        }
+        case 'star': {
+          const { outerRadius, innerRadius, points } = fixedShape.params;
+          const pointAngle = Math.PI / points;
+          const normalizedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+          const currentPoint = Math.floor(normalizedAngle / pointAngle);
+          const progress = (normalizedAngle % pointAngle) / pointAngle;
+
+          const radius1 = currentPoint % 2 === 0 ? outerRadius : innerRadius;
+          const radius2 = currentPoint % 2 === 0 ? innerRadius : outerRadius;
+          const angle1 = (currentPoint * pointAngle);
+          const angle2 = ((currentPoint + 1) * pointAngle);
+
+          // Interpolate between the two radii
+          const currentRadius = radius1 + (radius2 - radius1) * progress;
+          baseX = currentRadius * Math.cos(normalizedAngle);
+          baseY = currentRadius * Math.sin(normalizedAngle);
+          break;
+        }
+        case 'hexagon': {
+          const { sideLength, cornerRadius } = fixedShape.params;
+          const angleStep = Math.PI / 3;
+          const normalizedAngle = ((angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+          const currentVertex = Math.floor(normalizedAngle / angleStep);
+          const progress = (normalizedAngle % angleStep) / angleStep;
+
+          if (cornerRadius > 0) {
+            const angle1 = currentVertex * angleStep;
+            const angle2 = (currentVertex + 1) * angleStep;
+            const point1 = {
+              x: sideLength * Math.cos(angle1),
+              y: sideLength * Math.sin(angle1)
+            };
+            const point2 = {
+              x: sideLength * Math.cos(angle2),
+              y: sideLength * Math.sin(angle2)
+            };
+
+            // Handle rounded corners
+            const cornerAngle = Math.atan2(cornerRadius, sideLength);
+            if (progress < cornerAngle / angleStep) {
+              // Start of corner
+              const cornerCenter = {
+                x: point1.x - cornerRadius * Math.cos(angle1 - Math.PI / 2),
+                y: point1.y - cornerRadius * Math.sin(angle1 - Math.PI / 2)
+              };
+              const cornerProgress = progress * angleStep / cornerAngle;
+              baseX = cornerCenter.x + cornerRadius * Math.cos(angle1 + cornerProgress * Math.PI / 2);
+              baseY = cornerCenter.y + cornerRadius * Math.sin(angle1 + cornerProgress * Math.PI / 2);
+            } else if (progress > 1 - cornerAngle / angleStep) {
+              // End of corner
+              const cornerCenter = {
+                x: point2.x - cornerRadius * Math.cos(angle2 + Math.PI / 2),
+                y: point2.y - cornerRadius * Math.sin(angle2 + Math.PI / 2)
+              };
+              const cornerProgress = (progress - 1 + cornerAngle / angleStep) * angleStep / cornerAngle;
+              baseX = cornerCenter.x + cornerRadius * Math.cos(angle2 - (1 - cornerProgress) * Math.PI / 2);
+              baseY = cornerCenter.y + cornerRadius * Math.sin(angle2 - (1 - cornerProgress) * Math.PI / 2);
+            } else {
+              // Straight edge
+              const edgeProgress = (progress - cornerAngle / angleStep) / (1 - 2 * cornerAngle / angleStep);
+              baseX = point1.x + (point2.x - point1.x) * edgeProgress;
+              baseY = point1.y + (point2.y - point1.y) * edgeProgress;
+            }
+          } else {
+            // Sharp corners
+            const angle1 = currentVertex * angleStep;
+            const angle2 = (currentVertex + 1) * angleStep;
+            const x1 = sideLength * Math.cos(angle1);
+            const y1 = sideLength * Math.sin(angle1);
+            const x2 = sideLength * Math.cos(angle2);
+            const y2 = sideLength * Math.sin(angle2);
+
+            baseX = x1 + (x2 - x1) * progress;
+            baseY = y1 + (y2 - y1) * progress;
+          }
+          break;
+        }
+        default:
+          baseX = R * Math.cos(angle);
+          baseY = R * Math.sin(angle);
+      }
+
+      // Calculate pen position relative to the moving circle center
+      const penAngle = ((R - movingRadius) / movingRadius) * angle;
+      const penX = baseX - movingRadius * Math.cos(angle) + penDistance * Math.cos(penAngle);
+      const penY = baseY - movingRadius * Math.sin(angle) - penDistance * Math.sin(penAngle);
+
+      return { x: penX, y: penY };
     };
 
     const animate = (timestamp: number) => {
@@ -314,35 +543,37 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const overlayCtx = overlayContextRef.current;
       if (!ctx || !overlayCtx || !overlayCanvasRef.current) return;
 
-      // Calculate delta time for smooth animation
-      if (!lastTimeRef.current) {
-        lastTimeRef.current = timestamp;
-      }
-      const deltaTime = timestamp - lastTimeRef.current;
-      lastTimeRef.current = timestamp;
+      // Clear both canvases
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvasRef.current!.width, canvasRef.current!.height);
+      ctx.restore();
 
-      const { fixedShape } = params;
-
-      // Clear only the overlay canvas
       overlayCtx.save();
       overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
       overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
       overlayCtx.restore();
 
-      // Reset the overlay canvas transform
-      overlayCtx.setTransform(1, 0, 0, 1, overlayCanvasRef.current.width / 2, overlayCanvasRef.current.height / 2);
+      // Apply transform to both canvases
+      ctx.save();
+      overlayCtx.save();
 
-      if (fixedShape.type === 'ellipse') {
-        overlayCtx.save();
-        overlayCtx.rotate(fixedShape.params.rotation * Math.PI / 180);
-      }
+      // Center the canvas
+      ctx.translate(canvasRef.current!.width / 2, canvasRef.current!.height / 2);
+      overlayCtx.translate(overlayCanvasRef.current.width / 2, overlayCanvasRef.current.height / 2);
+
+      // Apply pan and zoom
+      ctx.translate(transform.x, transform.y);
+      ctx.scale(transform.scale, transform.scale);
+      overlayCtx.translate(transform.x, transform.y);
+      overlayCtx.scale(transform.scale, transform.scale);
 
       // Draw guide shapes on the overlay canvas
-      drawFixedShape(overlayCtx, fixedShape);
+      drawFixedShape(overlayCtx, params.fixedShape);
       drawMovingCircle(overlayCtx, angleRef.current);
 
       // Use timestamp for smoother animation
-      const t = deltaTime * 0.005;
+      const t = timestamp * 0.005;
       const currentAngle = angleRef.current;
       const nextAngle = currentAngle + (params.animationSpeed * t);
 
@@ -375,9 +606,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       lastPointRef.current = newPoint;
       angleRef.current = nextAngle;
 
-      if (fixedShape.type === 'ellipse') {
-        overlayCtx.restore();
-      }
+      ctx.restore();
+      overlayCtx.restore();
 
       if (isPlaying) {
         requestRef.current = requestAnimationFrame(animate);
@@ -393,7 +623,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [params, isPlaying]);
+  }, [params, isPlaying, transform]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -405,7 +635,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           left: 0,
           width: '100%',
           height: '100%',
-          background: '#ffffff'
+          background: '#ffffff',
+          cursor: isDraggingRef.current ? 'grabbing' : 'grab'
         }}
       />
       <canvas

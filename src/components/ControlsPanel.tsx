@@ -1,4 +1,4 @@
-import { Box, Slider, Typography, IconButton, Stack, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
+import { Box, Slider, Typography, IconButton, Stack, Select, MenuItem, FormControl, InputLabel, SelectChangeEvent, Divider } from '@mui/material';
 import { PlayArrow, Pause, Refresh, Download } from '@mui/icons-material';
 import { 
   SpirographParams, 
@@ -137,128 +137,127 @@ export const ControlsPanel = ({
     switch (params.fixedShape.type) {
       case 'circle':
         return (
-          <Box>
-            <Typography>Radius</Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Radius</Typography>
             <Slider
               value={(params.fixedShape.params as CircleParams).radius}
               onChange={(_, value) => handleShapeParamChange('radius', value as number)}
               min={50}
               max={300}
               step={10}
+              size="small"
             />
           </Box>
         );
       case 'square':
         return (
-          <Box>
-            <Typography>Edge Length</Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Edge Length</Typography>
             <Slider
               value={(params.fixedShape.params as SquareParams).edgeLength}
               onChange={(_, value) => handleShapeParamChange('edgeLength', value as number)}
               min={50}
               max={300}
               step={10}
+              size="small"
             />
-            <Typography>Corner Radius</Typography>
+            <Typography variant="caption" color="text.secondary">Corner Radius</Typography>
             <Slider
               value={(params.fixedShape.params as SquareParams).cornerRadius}
               onChange={(_, value) => handleShapeParamChange('cornerRadius', value as number)}
               min={0}
               max={50}
               step={5}
+              size="small"
             />
           </Box>
         );
       case 'star':
         return (
-          <>
-            <Box>
-              <Typography>Outer Radius</Typography>
-              <Slider
-                value={(params.fixedShape.params as StarParams).outerRadius}
-                onChange={(_, value) => handleShapeParamChange('outerRadius', value as number)}
-                min={100}
-                max={300}
-                step={10}
-              />
-            </Box>
-            <Box>
-              <Typography>Inner Radius</Typography>
-              <Slider
-                value={(params.fixedShape.params as StarParams).innerRadius}
-                onChange={(_, value) => handleShapeParamChange('innerRadius', value as number)}
-                min={50}
-                max={150}
-                step={10}
-              />
-            </Box>
-            <Box>
-              <Typography>Points</Typography>
-              <Slider
-                value={(params.fixedShape.params as StarParams).points}
-                onChange={(_, value) => handleShapeParamChange('points', value as number)}
-                min={3}
-                max={12}
-                step={1}
-              />
-            </Box>
-          </>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Outer Radius</Typography>
+            <Slider
+              value={(params.fixedShape.params as StarParams).outerRadius}
+              onChange={(_, value) => handleShapeParamChange('outerRadius', value as number)}
+              min={100}
+              max={300}
+              step={10}
+              size="small"
+            />
+            <Typography variant="caption" color="text.secondary">Inner Radius</Typography>
+            <Slider
+              value={(params.fixedShape.params as StarParams).innerRadius}
+              onChange={(_, value) => handleShapeParamChange('innerRadius', value as number)}
+              min={50}
+              max={150}
+              step={10}
+              size="small"
+            />
+            <Typography variant="caption" color="text.secondary">Points</Typography>
+            <Slider
+              value={(params.fixedShape.params as StarParams).points}
+              onChange={(_, value) => handleShapeParamChange('points', value as number)}
+              min={3}
+              max={12}
+              step={1}
+              size="small"
+            />
+          </Box>
         );
       case 'hexagon':
         return (
-          <Box>
-            <Typography>Side Length</Typography>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Side Length</Typography>
             <Slider
               value={(params.fixedShape.params as HexagonParams).sideLength}
               onChange={(_, value) => handleShapeParamChange('sideLength', value as number)}
               min={50}
               max={400}
               step={10}
+              size="small"
             />
-            <Typography>Corner Radius</Typography>
+            <Typography variant="caption" color="text.secondary">Corner Radius</Typography>
             <Slider
               value={(params.fixedShape.params as HexagonParams).cornerRadius}
               onChange={(_, value) => handleShapeParamChange('cornerRadius', value as number)}
               min={0}
               max={50}
               step={5}
+              size="small"
             />
           </Box>
         );
       case 'ellipse':
         return (
-          <>
-            <Box>
-              <Typography>Major Axis</Typography>
-              <Slider
-                value={(params.fixedShape.params as EllipseParams).majorAxis}
-                onChange={(_, value) => handleShapeParamChange('majorAxis', value as number)}
-                min={100}
-                max={400}
-                step={10}
-              />
-            </Box>
-            <Box>
-              <Typography>Minor Axis</Typography>
-              <Slider
-                value={(params.fixedShape.params as EllipseParams).minorAxis}
-                onChange={(_, value) => handleShapeParamChange('minorAxis', value as number)}
-                min={50}
-                max={300}
-                step={10}
-              />
-            </Box>
-            <Box>
-              <Typography>Rotation (degrees)</Typography>
-              <Slider
-                value={(params.fixedShape.params as EllipseParams).rotation}
-                onChange={(_, value) => handleShapeParamChange('rotation', value as number)}
-                min={0}
-                max={360}
-                step={1}
-              />
-            </Box>
-          </>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" color="text.secondary">Major Axis</Typography>
+            <Slider
+              value={(params.fixedShape.params as EllipseParams).majorAxis}
+              onChange={(_, value) => handleShapeParamChange('majorAxis', value as number)}
+              min={100}
+              max={400}
+              step={10}
+              size="small"
+            />
+            <Typography variant="caption" color="text.secondary">Minor Axis</Typography>
+            <Slider
+              value={(params.fixedShape.params as EllipseParams).minorAxis}
+              onChange={(_, value) => handleShapeParamChange('minorAxis', value as number)}
+              min={50}
+              max={300}
+              step={10}
+              size="small"
+            />
+            <Typography variant="caption" color="text.secondary">Rotation</Typography>
+            <Slider
+              value={(params.fixedShape.params as EllipseParams).rotation}
+              onChange={(_, value) => handleShapeParamChange('rotation', value as number)}
+              min={0}
+              max={360}
+              step={1}
+              size="small"
+            />
+          </Box>
         );
       default:
         return null;
@@ -266,173 +265,145 @@ export const ControlsPanel = ({
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Digital Spirograph
-      </Typography>
+    <Box sx={{ p: 2 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>Spirograph</Typography>
+        <Stack direction="row" spacing={1}>
+          <IconButton onClick={onPlayPause} size="small">
+            {isPlaying ? <Pause fontSize="small" /> : <PlayArrow fontSize="small" />}
+          </IconButton>
+          <IconButton onClick={onReset} size="small">
+            <Refresh fontSize="small" />
+          </IconButton>
+          <IconButton onClick={onDownload} size="small">
+            <Download fontSize="small" />
+          </IconButton>
+        </Stack>
+      </Box>
 
-      <Stack spacing={4} sx={{ mt: 4 }}>
-        {/* Animation Controls */}
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Animation Controls
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <IconButton onClick={onPlayPause}>
-              {isPlaying ? <Pause /> : <PlayArrow />}
-            </IconButton>
-            <IconButton onClick={onReset}>
-              <Refresh />
-            </IconButton>
-            <IconButton onClick={onDownload}>
-              <Download />
-            </IconButton>
-          </Stack>
-        </Box>
+      <Divider sx={{ mb: 2 }} />
 
-        {/* Fixed Shape Controls */}
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Fixed Shape
-          </Typography>
-          <FormControl fullWidth sx={{ mb: 3 }}>
-            <InputLabel>Shape Type</InputLabel>
-            <Select
-              value={params.fixedShape.type}
-              onChange={handleShapeTypeChange}
-              label="Shape Type"
-            >
-              <MenuItem value="circle">Circle</MenuItem>
-              <MenuItem value="square">Square</MenuItem>
-              <MenuItem value="star">Star</MenuItem>
-              <MenuItem value="hexagon">Hexagon</MenuItem>
-              <MenuItem value="ellipse">Ellipse</MenuItem>
-            </Select>
-          </FormControl>
-          
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" gutterBottom>
-              Shape Settings
-            </Typography>
-            {renderShapeControls()}
-          </Box>
-        </Box>
+      {/* Shape Selection */}
+      <Box sx={{ mb: 2 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel>Shape</InputLabel>
+          <Select
+            value={params.fixedShape.type}
+            onChange={handleShapeTypeChange}
+            label="Shape"
+          >
+            <MenuItem value="circle">Circle</MenuItem>
+            <MenuItem value="square">Square</MenuItem>
+            <MenuItem value="star">Star</MenuItem>
+            <MenuItem value="hexagon">Hexagon</MenuItem>
+            <MenuItem value="ellipse">Ellipse</MenuItem>
+          </Select>
+        </FormControl>
+      </Box>
 
-        {/* Color Controls */}
-        <Box>
-          <Typography gutterBottom>
-            Color Style
-          </Typography>
-          <FormControl fullWidth>
-            <Select
-              value={currentGradientIndex}
-              onChange={handleGradientChange}
-              sx={{ mb: 2 }}
-            >
-              <MenuItem value="0">Solid Color</MenuItem>
-              {GRADIENT_PRESETS.map((preset, index) => (
-                <MenuItem key={index} value={index.toString()}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      sx={{
-                        width: 50,
-                        height: 20,
-                        background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`
-                      }}
-                    />
-                    <Typography>Gradient {index + 1}</Typography>
-                  </Box>
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+      {/* Shape Parameters */}
+      {renderShapeControls()}
 
-          {currentGradientIndex === '0' && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <input
-                type="color"
-                value={currentColor}
-                onChange={handleColorChange}
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  padding: '0',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer'
-                }}
-              />
-              <Typography variant="body2" color="text.secondary">
-                {currentColor}
-              </Typography>
-            </Box>
-          )}
-        </Box>
+      <Divider sx={{ my: 2 }} />
 
-        {/* Moving Circle Controls */}
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Moving Circle
-          </Typography>
-          <Box>
-            <Typography gutterBottom>
-              Radius: {params.movingShape.params.radius}
-            </Typography>
-            <Slider
-              value={params.movingShape.params.radius}
-              onChange={handleMovingCircleChange('radius')}
-              min={10}
-              max={100}
-              step={1}
+      {/* Moving Circle Controls */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary">Moving Circle Radius</Typography>
+        <Slider
+          value={params.movingShape.params.radius}
+          onChange={handleMovingCircleChange('radius')}
+          min={10}
+          max={100}
+          step={1}
+          size="small"
+        />
+        <Typography variant="caption" color="text.secondary">Pen Distance</Typography>
+        <Slider
+          value={params.penDistance}
+          onChange={handleSliderChange('penDistance')}
+          min={0}
+          max={150}
+          step={1}
+          size="small"
+        />
+      </Box>
+
+      <Divider sx={{ my: 2 }} />
+
+      {/* Color Controls */}
+      <Box sx={{ mb: 2 }}>
+        <FormControl fullWidth size="small">
+          <InputLabel>Color</InputLabel>
+          <Select
+            value={currentGradientIndex}
+            onChange={handleGradientChange}
+            label="Color"
+          >
+            <MenuItem value="0">Solid</MenuItem>
+            {GRADIENT_PRESETS.map((preset, index) => (
+              <MenuItem key={index} value={index.toString()}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box
+                    sx={{
+                      width: 30,
+                      height: 15,
+                      background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`,
+                      borderRadius: 1
+                    }}
+                  />
+                  <Typography variant="caption">Gradient {index + 1}</Typography>
+                </Box>
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {currentGradientIndex === '0' && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+            <input
+              type="color"
+              value={currentColor}
+              onChange={handleColorChange}
+              style={{
+                width: '30px',
+                height: '30px',
+                padding: '0',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
             />
-          </Box>
-
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>
-              Pen Distance: {params.penDistance}
+            <Typography variant="caption" color="text.secondary">
+              {currentColor}
             </Typography>
-            <Slider
-              value={params.penDistance}
-              onChange={handleSliderChange('penDistance')}
-              min={0}
-              max={150}
-              step={1}
-            />
           </Box>
-        </Box>
+        )}
+      </Box>
 
-        {/* Drawing Controls */}
-        <Box>
-          <Typography variant="h6" gutterBottom>
-            Drawing Settings
-          </Typography>
-          <Box>
-            <Typography gutterBottom>
-              Animation Speed: {params.animationSpeed.toFixed(3)}
-            </Typography>
-            <Slider
-              value={params.animationSpeed}
-              onChange={handleSliderChange('animationSpeed')}
-              min={0.001}
-              max={1.0}
-              step={0.01}
-            />
-          </Box>
+      <Divider sx={{ my: 2 }} />
 
-          <Box sx={{ mt: 2 }}>
-            <Typography gutterBottom>
-              Line Width: {params.lineWidth}
-            </Typography>
-            <Slider
-              value={params.lineWidth}
-              onChange={handleSliderChange('lineWidth')}
-              min={1}
-              max={10}
-              step={0.5}
-            />
-          </Box>
-        </Box>
-      </Stack>
+      {/* Drawing Settings */}
+      <Box>
+        <Typography variant="caption" color="text.secondary">Animation Speed</Typography>
+        <Slider
+          value={params.animationSpeed}
+          onChange={handleSliderChange('animationSpeed')}
+          min={0.001}
+          max={1.0}
+          step={0.01}
+          size="small"
+        />
+        <Typography variant="caption" color="text.secondary">Line Width</Typography>
+        <Slider
+          value={params.lineWidth}
+          onChange={handleSliderChange('lineWidth')}
+          min={1}
+          max={10}
+          step={0.5}
+          size="small"
+        />
+      </Box>
     </Box>
   );
 }; 
