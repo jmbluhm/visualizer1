@@ -150,7 +150,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       }
 
       // Use timestamp for smoother animation
-      const t = deltaTime * 0.001; // Convert to seconds
+      const t = deltaTime * 0.005; // Increase time scaling factor for faster animation
       const interpolatedAngle = angleRef.current + (params.animationSpeed * t);
       angleRef.current = interpolatedAngle;
 

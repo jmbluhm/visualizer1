@@ -414,8 +414,8 @@ export const ControlsPanel = ({
               value={params.animationSpeed}
               onChange={handleSliderChange('animationSpeed')}
               min={0.001}
-              max={0.1}
-              step={0.001}
+              max={1.0}
+              step={0.01}
             />
           </Box>
 
