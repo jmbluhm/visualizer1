@@ -71,7 +71,9 @@ const getFixedShapeRadius = (fixedShape: FixedShapeConfig): number => {
 
 export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params, isPlaying }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
+  const overlayContextRef = useRef<CanvasRenderingContext2D | null>(null);
   const angleRef = useRef<number>(0);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const lastTimeRef = useRef<number>(0);
@@ -124,24 +126,28 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlayCanvas = overlayCanvasRef.current;
+    if (!canvas || !overlayCanvas) return;
 
     const context = canvas.getContext('2d');
-    if (!context) return;
+    const overlayContext = overlayCanvas.getContext('2d');
+    if (!context || !overlayContext) return;
 
     contextRef.current = context;
+    overlayContextRef.current = overlayContext;
 
     const resizeCanvas = () => {
+      // Set up main canvas
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
       context.translate(canvas.width / 2, canvas.height / 2);
-      
-      // Clear canvas with white background
       context.fillStyle = '#ffffff';
       context.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
-      
-      // Draw fixed shape guide
-      drawFixedShape(context, params.fixedShape);
+
+      // Set up overlay canvas
+      overlayCanvas.width = window.innerWidth;
+      overlayCanvas.height = window.innerHeight;
+      overlayContext.translate(overlayCanvas.width / 2, overlayCanvas.height / 2);
     };
 
     resizeCanvas();
@@ -150,7 +156,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     return () => {
       window.removeEventListener('resize', resizeCanvas);
     };
-  }, [params.fixedShape]);
+  }, []);
 
   const drawFixedShape = (ctx: CanvasRenderingContext2D, fixedShape: FixedShapeConfig) => {
     ctx.save();
@@ -305,7 +311,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
     const animate = (timestamp: number) => {
       const ctx = contextRef.current;
-      if (!ctx) return;
+      const overlayCtx = overlayContextRef.current;
+      if (!ctx || !overlayCtx || !overlayCanvasRef.current) return;
 
       // Calculate delta time for smooth animation
       if (!lastTimeRef.current) {
@@ -316,53 +323,30 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
       const { fixedShape } = params;
 
-      // Clear the entire canvas and redraw
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      
-      // Save the current drawing
-      const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-      const tempCtx = tempCanvas.getContext('2d');
-      if (tempCtx) {
-        tempCtx.drawImage(canvas, 0, 0);
-      }
+      // Clear only the overlay canvas
+      overlayCtx.save();
+      overlayCtx.setTransform(1, 0, 0, 1, 0, 0);
+      overlayCtx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
+      overlayCtx.restore();
 
-      // Clear and fill background
-      ctx.save();
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.restore();
-
-      // Restore the previous drawing
-      if (tempCtx) {
-        ctx.drawImage(tempCanvas, 0, 0);
-      }
+      // Reset the overlay canvas transform
+      overlayCtx.setTransform(1, 0, 0, 1, overlayCanvasRef.current.width / 2, overlayCanvasRef.current.height / 2);
 
       if (fixedShape.type === 'ellipse') {
-        ctx.save();
-        ctx.rotate(fixedShape.params.rotation * Math.PI / 180);
+        overlayCtx.save();
+        overlayCtx.rotate(fixedShape.params.rotation * Math.PI / 180);
       }
 
-      // Draw guide shapes (will be fresh each frame)
-      drawFixedShape(ctx, fixedShape);
-      drawMovingCircle(ctx, angleRef.current);
+      // Draw guide shapes on the overlay canvas
+      drawFixedShape(overlayCtx, fixedShape);
+      drawMovingCircle(overlayCtx, angleRef.current);
 
       // Use timestamp for smoother animation
       const t = deltaTime * 0.005;
       const currentAngle = angleRef.current;
       const nextAngle = currentAngle + (params.animationSpeed * t);
 
-      // Add line smoothing settings
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.shadowBlur = 0.5;
-      ctx.shadowColor = typeof params.color === 'string' ? params.color : params.color.colors[0].color;
-
-      // Interpolate points for smoother lines at high speeds
+      // Draw the actual spirograph on the main canvas
       if (lastPointRef.current) {
         const steps = Math.max(1, Math.ceil(params.animationSpeed * 20));
         ctx.beginPath();
@@ -373,10 +357,11 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           const interpolatedAngle = currentAngle + (params.animationSpeed * t * progress);
           const point = calculatePoint(interpolatedAngle);
           
-          // Get color for this segment
           const colorProgress = (interpolatedAngle % (Math.PI * 2)) / (Math.PI * 2);
           ctx.strokeStyle = getColorFromGradient(params.color, colorProgress);
           ctx.lineWidth = params.lineWidth;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           
           ctx.lineTo(point.x, point.y);
           ctx.stroke();
@@ -391,7 +376,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       angleRef.current = nextAngle;
 
       if (fixedShape.type === 'ellipse') {
-        ctx.restore();
+        overlayCtx.restore();
       }
 
       if (isPlaying) {
@@ -410,5 +395,30 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     };
   }, [params, isPlaying]);
 
-  return <canvas ref={canvasRef} style={{ background: '#ffffff' }} />;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: '#ffffff'
+        }}
+      />
+      <canvas
+        ref={overlayCanvasRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none'
+        }}
+      />
+    </div>
+  );
 });
