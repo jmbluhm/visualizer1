@@ -74,7 +74,6 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const angleRef = useRef<number>(0);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const frameCountRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const requestRef = useRef<number | undefined>(undefined);
 
