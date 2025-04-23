@@ -2,8 +2,7 @@ import { Box, Slider, Typography, IconButton, Stack, Select, MenuItem, FormContr
 import { PlayArrow, Pause, Refresh, Download } from '@mui/icons-material';
 import { 
   SpirographParams, 
-  GRADIENT_PRESETS, 
-  GradientColor, 
+  GRADIENT_PRESETS,
   FixedShape, 
   FIXED_SHAPE_DEFAULTS,
   CircleParams,

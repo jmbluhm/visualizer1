@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { SpirographParams, GradientColor, FixedShapeConfig } from '../types';
 
 interface Props {
   params: SpirographParams;
   isPlaying: boolean;
+}
+
+export interface SpirographCanvasRef {
+  clearCanvas: () => void;
+  downloadImage: () => void;
 }
 
 const getColorFromGradient = (gradient: GradientColor | string, progress: number): string => {
@@ -64,13 +69,39 @@ const getFixedShapeRadius = (fixedShape: FixedShapeConfig): number => {
   }
 };
 
-export const SpirographCanvas = ({ params, isPlaying }: Props) => {
+export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params, isPlaying }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
   const angleRef = useRef(0);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const frameCountRef = useRef(0);
   const requestRef = useRef<number>();
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = contextRef.current;
+    if (!canvas || !ctx) return;
+
+    ctx.clearRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+    lastPointRef.current = null;
+  };
+
+  const downloadImage = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const link = document.createElement('a');
+    link.download = 'spirograph.png';
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  useImperativeHandle(ref, () => ({
+    clearCanvas,
+    downloadImage
+  }));
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -98,7 +129,7 @@ export const SpirographCanvas = ({ params, isPlaying }: Props) => {
   useEffect(() => {
     if (!contextRef.current) return;
 
-    const animate = (time: number) => {
+    const animate = (timestamp: number) => {
       const ctx = contextRef.current;
       if (!ctx) return;
 
@@ -141,7 +172,7 @@ export const SpirographCanvas = ({ params, isPlaying }: Props) => {
     };
 
     if (isPlaying) {
-      requestRef.current = requestAnimationFrame(animate);
+      requestRef.current = requestAnimationFrame((time) => animate(time));
     }
 
     return () => {
@@ -152,4 +183,4 @@ export const SpirographCanvas = ({ params, isPlaying }: Props) => {
   }, [params, isPlaying]);
 
   return <canvas ref={canvasRef} style={{ background: '#ffffff' }} />;
-};
+});
