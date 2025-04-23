@@ -372,13 +372,14 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const movingRadius = movingShape.params.radius;
       const R = getFixedShapeRadius(fixedShape);
 
-      let baseX: number;
-      let baseY: number;
+      // Calculate the center of the moving circle
+      let centerX: number;
+      let centerY: number;
 
       switch (fixedShape.type) {
         case 'circle': {
-          baseX = R * Math.cos(angle);
-          baseY = R * Math.sin(angle);
+          centerX = R * Math.cos(angle);
+          centerY = R * Math.sin(angle);
           break;
         }
         case 'square': {
@@ -386,26 +387,28 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           const halfEdge = edgeLength / 2;
           const normalizedAngle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
           const sideAngle = Math.PI / 2;
+          const side = Math.floor(normalizedAngle / sideAngle);
+          const sideProgress = (normalizedAngle % sideAngle) / sideAngle;
 
           if (cornerRadius > 0) {
             // Handle rounded corners
             const cornerAngle = Math.atan2(cornerRadius, halfEdge - cornerRadius);
             if (normalizedAngle < cornerAngle || normalizedAngle >= 2 * Math.PI - cornerAngle) {
               // Right edge
-              baseX = halfEdge;
-              baseY = -halfEdge + cornerRadius + (normalizedAngle * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              centerX = halfEdge - cornerRadius;
+              centerY = -halfEdge + cornerRadius + (normalizedAngle * (edgeLength - 2 * cornerRadius)) / sideAngle;
             } else if (normalizedAngle < Math.PI / 2 + cornerAngle) {
               // Bottom edge
-              baseX = halfEdge - cornerRadius - ((normalizedAngle - cornerAngle) * (edgeLength - 2 * cornerRadius)) / sideAngle;
-              baseY = halfEdge;
+              centerX = halfEdge - cornerRadius - ((normalizedAngle - cornerAngle) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              centerY = halfEdge - cornerRadius;
             } else if (normalizedAngle < Math.PI + cornerAngle) {
               // Left edge
-              baseX = -halfEdge;
-              baseY = halfEdge - cornerRadius - ((normalizedAngle - (Math.PI / 2 + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              centerX = -halfEdge + cornerRadius;
+              centerY = halfEdge - cornerRadius - ((normalizedAngle - (Math.PI / 2 + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
             } else if (normalizedAngle < 3 * Math.PI / 2 + cornerAngle) {
               // Top edge
-              baseX = -halfEdge + cornerRadius + ((normalizedAngle - (Math.PI + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
-              baseY = -halfEdge;
+              centerX = -halfEdge + cornerRadius + ((normalizedAngle - (Math.PI + cornerAngle)) * (edgeLength - 2 * cornerRadius)) / sideAngle;
+              centerY = -halfEdge + cornerRadius;
             } else {
               // Corner arcs
               const cornerCenter = {
@@ -413,30 +416,27 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
                 y: Math.sign(Math.sin(normalizedAngle)) * (halfEdge - cornerRadius)
               };
               const cornerAngleOffset = normalizedAngle - Math.floor(normalizedAngle / sideAngle) * sideAngle;
-              baseX = cornerCenter.x + cornerRadius * Math.cos(cornerAngleOffset);
-              baseY = cornerCenter.y + cornerRadius * Math.sin(cornerAngleOffset);
+              centerX = cornerCenter.x + cornerRadius * Math.cos(cornerAngleOffset);
+              centerY = cornerCenter.y + cornerRadius * Math.sin(cornerAngleOffset);
             }
           } else {
             // Handle sharp corners
-            const side = Math.floor(normalizedAngle / sideAngle);
-            const sideProgress = (normalizedAngle % sideAngle) / sideAngle;
-
             switch (side) {
               case 0: // Right side
-                baseX = halfEdge;
-                baseY = -halfEdge + edgeLength * sideProgress;
+                centerX = halfEdge;
+                centerY = -halfEdge + edgeLength * sideProgress;
                 break;
               case 1: // Bottom side
-                baseX = halfEdge - edgeLength * sideProgress;
-                baseY = halfEdge;
+                centerX = halfEdge - edgeLength * sideProgress;
+                centerY = halfEdge;
                 break;
               case 2: // Left side
-                baseX = -halfEdge;
-                baseY = halfEdge - edgeLength * sideProgress;
+                centerX = -halfEdge;
+                centerY = halfEdge - edgeLength * sideProgress;
                 break;
               default: // Top side
-                baseX = -halfEdge + edgeLength * sideProgress;
-                baseY = -halfEdge;
+                centerX = -halfEdge + edgeLength * sideProgress;
+                centerY = -halfEdge;
                 break;
             }
           }
@@ -445,16 +445,16 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
         case 'ellipse': {
           const { majorAxis, minorAxis, rotation } = fixedShape.params;
           const rotatedAngle = angle - rotation * Math.PI / 180;
-          baseX = (majorAxis / 2) * Math.cos(rotatedAngle);
-          baseY = (minorAxis / 2) * Math.sin(rotatedAngle);
+          centerX = (majorAxis / 2) * Math.cos(rotatedAngle);
+          centerY = (minorAxis / 2) * Math.sin(rotatedAngle);
           
           // Rotate the point back
           const cos = Math.cos(rotation * Math.PI / 180);
           const sin = Math.sin(rotation * Math.PI / 180);
-          const rotatedX = baseX * cos - baseY * sin;
-          const rotatedY = baseX * sin + baseY * cos;
-          baseX = rotatedX;
-          baseY = rotatedY;
+          const rotatedX = centerX * cos - centerY * sin;
+          const rotatedY = centerX * sin + centerY * cos;
+          centerX = rotatedX;
+          centerY = rotatedY;
           break;
         }
         case 'star': {
@@ -467,8 +467,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           const radius1 = currentPoint % 2 === 0 ? outerRadius : innerRadius;
           const radius2 = currentPoint % 2 === 0 ? innerRadius : outerRadius;
           const currentRadius = radius1 + (radius2 - radius1) * progress;
-          baseX = currentRadius * Math.cos(normalizedAngle);
-          baseY = currentRadius * Math.sin(normalizedAngle);
+          centerX = currentRadius * Math.cos(normalizedAngle);
+          centerY = currentRadius * Math.sin(normalizedAngle);
           break;
         }
         case 'hexagon': {
@@ -499,8 +499,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
                 y: point1.y - cornerRadius * Math.sin(angle1 - Math.PI / 2)
               };
               const cornerProgress = progress * angleStep / cornerAngle;
-              baseX = cornerCenter.x + cornerRadius * Math.cos(angle1 + cornerProgress * Math.PI / 2);
-              baseY = cornerCenter.y + cornerRadius * Math.sin(angle1 + cornerProgress * Math.PI / 2);
+              centerX = cornerCenter.x + cornerRadius * Math.cos(angle1 + cornerProgress * Math.PI / 2);
+              centerY = cornerCenter.y + cornerRadius * Math.sin(angle1 + cornerProgress * Math.PI / 2);
             } else if (progress > 1 - cornerAngle / angleStep) {
               // End of corner
               const cornerCenter = {
@@ -508,13 +508,13 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
                 y: point2.y - cornerRadius * Math.sin(angle2 + Math.PI / 2)
               };
               const cornerProgress = (progress - 1 + cornerAngle / angleStep) * angleStep / cornerAngle;
-              baseX = cornerCenter.x + cornerRadius * Math.cos(angle2 - (1 - cornerProgress) * Math.PI / 2);
-              baseY = cornerCenter.y + cornerRadius * Math.sin(angle2 - (1 - cornerProgress) * Math.PI / 2);
+              centerX = cornerCenter.x + cornerRadius * Math.cos(angle2 - (1 - cornerProgress) * Math.PI / 2);
+              centerY = cornerCenter.y + cornerRadius * Math.sin(angle2 - (1 - cornerProgress) * Math.PI / 2);
             } else {
               // Straight edge
               const edgeProgress = (progress - cornerAngle / angleStep) / (1 - 2 * cornerAngle / angleStep);
-              baseX = point1.x + (point2.x - point1.x) * edgeProgress;
-              baseY = point1.y + (point2.y - point1.y) * edgeProgress;
+              centerX = point1.x + (point2.x - point1.x) * edgeProgress;
+              centerY = point1.y + (point2.y - point1.y) * edgeProgress;
             }
           } else {
             // Sharp corners
@@ -525,20 +525,20 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
             const x2 = sideLength * Math.cos(angle2);
             const y2 = sideLength * Math.sin(angle2);
 
-            baseX = x1 + (x2 - x1) * progress;
-            baseY = y1 + (y2 - y1) * progress;
+            centerX = x1 + (x2 - x1) * progress;
+            centerY = y1 + (y2 - y1) * progress;
           }
           break;
         }
         default:
-          baseX = R * Math.cos(angle);
-          baseY = R * Math.sin(angle);
+          centerX = R * Math.cos(angle);
+          centerY = R * Math.sin(angle);
       }
 
       // Calculate pen position relative to the moving circle center
       const penAngle = ((R - movingRadius) / movingRadius) * angle;
-      const penX = baseX - movingRadius * Math.cos(angle) + penDistance * Math.cos(penAngle);
-      const penY = baseY - movingRadius * Math.sin(angle) - penDistance * Math.sin(penAngle);
+      const penX = centerX - movingRadius * Math.cos(angle) + penDistance * Math.cos(penAngle);
+      const penY = centerY - movingRadius * Math.sin(angle) - penDistance * Math.sin(penAngle);
 
       return { x: penX, y: penY };
     };
