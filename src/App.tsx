@@ -8,6 +8,7 @@ import { ControlsPanel } from './components/ControlsPanel'
 function App() {
   const [params, setParams] = useState<SpirographParams>(DEFAULT_PARAMS)
   const [isPlaying, setIsPlaying] = useState(true)
+  const [showGuides, setShowGuides] = useState(true)
   const canvasRef = useRef<{ clearCanvas: () => void; downloadImage: () => void }>(null)
 
   const handleReset = () => {
@@ -44,6 +45,7 @@ function App() {
             ref={canvasRef}
             params={params}
             isPlaying={isPlaying}
+            showGuides={showGuides}
           />
         </Box>
 
@@ -65,10 +67,12 @@ function App() {
           <ControlsPanel
             params={params}
             isPlaying={isPlaying}
+            showGuides={showGuides}
             onParamsChange={setParams}
             onPlayPause={() => setIsPlaying(!isPlaying)}
             onReset={handleReset}
             onDownload={handleDownload}
+            onShowGuidesChange={setShowGuides}
           />
         </Box>
       </Box>

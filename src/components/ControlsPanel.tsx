@@ -16,19 +16,23 @@ import {
 interface Props {
   params: SpirographParams;
   isPlaying: boolean;
+  showGuides: boolean;
   onParamsChange: (params: SpirographParams) => void;
   onPlayPause: () => void;
   onReset: () => void;
   onDownload: () => void;
+  onShowGuidesChange: (show: boolean) => void;
 }
 
 export const ControlsPanel = ({
   params,
   isPlaying,
+  showGuides,
   onParamsChange,
   onPlayPause,
   onReset,
-  onDownload
+  onDownload,
+  onShowGuidesChange
 }: Props) => {
   const handleSliderChange = (param: keyof SpirographParams) => (
     _: Event,
@@ -314,6 +318,23 @@ export const ControlsPanel = ({
       {renderShapeControls()}
 
       <Divider sx={{ my: 2 }} />
+
+      {/* Guide Shapes Toggle */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="caption" color="text.secondary">Guide Shapes</Typography>
+        <Slider
+          value={showGuides ? 1 : 0}
+          onChange={(_, value) => onShowGuidesChange(value === 1)}
+          min={0}
+          max={1}
+          step={1}
+          size="small"
+          marks={[
+            { value: 0, label: 'Off' },
+            { value: 1, label: 'On' }
+          ]}
+        />
+      </Box>
 
       {/* Moving Circle Controls */}
       <Box sx={{ mb: 2 }}>

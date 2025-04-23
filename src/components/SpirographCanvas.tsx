@@ -4,6 +4,7 @@ import { SpirographParams, GradientColor, FixedShapeConfig } from '../types';
 interface Props {
   params: SpirographParams;
   isPlaying: boolean;
+  showGuides?: boolean;
 }
 
 export interface SpirographCanvasRef {
@@ -69,7 +70,7 @@ const getFixedShapeRadius = (fixedShape: FixedShapeConfig): number => {
   }
 };
 
-export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params, isPlaying }, ref) => {
+export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params, isPlaying, showGuides = true }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
@@ -78,14 +79,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const requestRef = useRef<number | undefined>(undefined);
 
-  // Add state for pan and zoom
-  const [transform, setTransform] = useState({
-    x: 0,
-    y: 0,
-    scale: 1
-  });
-  const isDraggingRef = useRef(false);
-  const lastMousePosRef = useRef({ x: 0, y: 0 });
+  // Add state for zoom only
+  const [scale, setScale] = useState(1);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -103,17 +98,19 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     // Reset drawing state but keep angle for continuous drawing
     lastPointRef.current = null;
 
-    // Redraw guide shapes
-    if (params.fixedShape.type === 'ellipse') {
-      ctx.save();
-      ctx.rotate(params.fixedShape.params.rotation * Math.PI / 180);
-    }
-    
-    drawFixedShape(ctx, params.fixedShape);
-    drawMovingCircle(ctx, angleRef.current);
+    // Redraw guide shapes if enabled
+    if (showGuides) {
+      if (params.fixedShape.type === 'ellipse') {
+        ctx.save();
+        ctx.rotate(params.fixedShape.params.rotation * Math.PI / 180);
+      }
+      
+      drawFixedShape(ctx, params.fixedShape);
+      drawMovingCircle(ctx, angleRef.current);
 
-    if (params.fixedShape.type === 'ellipse') {
-      ctx.restore();
+      if (params.fixedShape.type === 'ellipse') {
+        ctx.restore();
+      }
     }
   };
 
@@ -169,36 +166,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const maxDimension = Math.min(canvas.width, canvas.height);
       const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of visible canvas size
       
-      // Center the shape
-      setTransform({
-        x: 0,
-        y: 0,
-        scale: initialScale
-      });
-    };
-
-    const handleMouseDown = (e: MouseEvent) => {
-      isDraggingRef.current = true;
-      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDraggingRef.current) return;
-
-      const dx = e.clientX - lastMousePosRef.current.x;
-      const dy = e.clientY - lastMousePosRef.current.y;
-
-      setTransform(prev => ({
-        ...prev,
-        x: prev.x + dx,
-        y: prev.y + dy
-      }));
-
-      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const handleMouseUp = () => {
-      isDraggingRef.current = false;
+      // Set initial scale
+      setScale(initialScale);
     };
 
     const handleWheel = (e: WheelEvent) => {
@@ -206,16 +175,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const delta = e.deltaY;
       const scaleFactor = delta > 0 ? 0.9 : 1.1;
       
-      // Calculate mouse position relative to canvas center
-      const rect = canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left - canvas.width / 2;
-      const mouseY = e.clientY - rect.top - canvas.height / 2;
-
-      setTransform(prev => ({
-        x: prev.x + mouseX * (1 - scaleFactor),
-        y: prev.y + mouseY * (1 - scaleFactor),
-        scale: Math.max(0.1, Math.min(10, prev.scale * scaleFactor))
-      }));
+      setScale(prev => Math.max(0.1, Math.min(10, prev * scaleFactor)));
     };
 
     // Initial setup
@@ -225,17 +185,11 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     const resizeObserver = new ResizeObserver(resizeCanvas);
     resizeObserver.observe(canvas.parentElement!);
 
-    // Add event listeners
-    canvas.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    // Add wheel event listener
     canvas.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
       resizeObserver.disconnect();
-      canvas.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('wheel', handleWheel);
     };
   }, [params]);
@@ -575,15 +529,15 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       ctx.translate(canvasRef.current!.width / 2, canvasRef.current!.height / 2);
       overlayCtx.translate(overlayCanvasRef.current.width / 2, overlayCanvasRef.current.height / 2);
 
-      // Apply pan and zoom
-      ctx.translate(transform.x, transform.y);
-      ctx.scale(transform.scale, transform.scale);
-      overlayCtx.translate(transform.x, transform.y);
-      overlayCtx.scale(transform.scale, transform.scale);
+      // Apply scale
+      ctx.scale(scale, scale);
+      overlayCtx.scale(scale, scale);
 
-      // Draw guide shapes on the overlay canvas
-      drawFixedShape(overlayCtx, params.fixedShape);
-      drawMovingCircle(overlayCtx, angleRef.current);
+      // Draw guide shapes on the overlay canvas if enabled
+      if (showGuides) {
+        drawFixedShape(overlayCtx, params.fixedShape);
+        drawMovingCircle(overlayCtx, angleRef.current);
+      }
 
       // Use timestamp for smoother animation with adjusted speed calculation
       const t = timestamp * 0.0005; // Reduced from 0.005 to slow down the base speed
@@ -636,7 +590,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
         cancelAnimationFrame(requestRef.current);
       }
     };
-  }, [params, isPlaying, transform]);
+  }, [params, isPlaying, scale, showGuides]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -648,8 +602,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
           left: 0,
           width: '100%',
           height: '100%',
-          background: params.backgroundColor,
-          cursor: isDraggingRef.current ? 'grabbing' : 'grab'
+          background: params.backgroundColor
         }}
       />
       <canvas
