@@ -1,139 +1,143 @@
-export type FixedShape = 'circle' | 'square' | 'star' | 'triangle' | 'oval';
-
-export interface CircleConfig {
-  type: 'circle';
-  params: {
-    radius: number;
-  };
-}
-
-export interface SquareConfig {
-  type: 'square';
-  params: {
-    edgeLength: number;
-    cornerRadius: number;
-  };
-}
-
-export interface StarConfig {
-  type: 'star';
-  params: {
-    outerRadius: number;
-    innerRadius: number;
-    points: number;
-  };
-}
-
-export interface TriangleConfig {
-  type: 'triangle';
-  params: {
-    sideLength: number;
-    cornerRadius: number;
-  };
-}
-
-export interface OvalConfig {
-  type: 'oval';
-  params: {
-    majorAxis: number;
-    minorAxis: number;
-    rotation: number;
-  };
-}
-
-export type FixedShapeConfig = CircleConfig | SquareConfig | StarConfig | TriangleConfig | OvalConfig;
-
-export interface GradientColor {
-  type: 'solid' | 'gradient';
-  name: string;
-  colors: string[];
-}
-
-export interface SpirographParams {
-  fixedShape: FixedShapeConfig;
-  r: number;  // moving circle radius
-  d: number;  // pen distance from center of moving circle
-  speed: number;
-  lineWidth: number;
-  color: GradientColor | string;
-}
-
-export const GRADIENT_PRESETS: GradientColor[] = [
-  {
-    name: 'Solid Color',
-    type: 'solid',
-    colors: ['#00ff00']
-  },
-  {
-    name: 'Sunset',
-    type: 'gradient',
-    colors: ['#FF8C42', '#FF5733', '#C70039', '#900C3F']
-  },
-  {
-    name: 'Neon',
-    type: 'gradient',
-    colors: ['#FF1493', '#00FF00', '#00FFFF', '#FF1493']
-  },
-  {
-    name: 'Fireworks',
-    type: 'gradient',
-    colors: ['#FF0000', '#FFFF00', '#FF00FF', '#FF0000']
-  }
-];
-
-export const DEFAULT_PARAMS: SpirographParams = {
-  fixedShape: {
-    type: 'circle',
-    params: {
-      radius: 150
-    }
-  },
-  r: 50,
-  d: 75,
-  speed: 0.02,
-  lineWidth: 2,
-  color: {
-    type: 'solid',
-    name: 'Default',
-    colors: ['#00ff00']
-  }
+export type CircleParams = {
+  radius: number;
 };
 
-export const FIXED_SHAPE_DEFAULTS = {
+export type SquareParams = {
+  edgeLength: number;
+  cornerRadius: number;
+};
+
+export type StarParams = {
+  outerRadius: number;
+  innerRadius: number;
+  points: number;
+};
+
+export type HexagonParams = {
+  sideLength: number;
+  cornerRadius: number;
+};
+
+export type EllipseParams = {
+  majorAxis: number;
+  minorAxis: number;
+  rotation: number;
+};
+
+export type FixedShape = 'circle' | 'square' | 'star' | 'hexagon' | 'ellipse';
+
+export type FixedShapeConfig = 
+  | { type: 'circle'; params: CircleParams }
+  | { type: 'square'; params: SquareParams }
+  | { type: 'star'; params: StarParams }
+  | { type: 'hexagon'; params: HexagonParams }
+  | { type: 'ellipse'; params: EllipseParams };
+
+export const FIXED_SHAPE_DEFAULTS: Record<FixedShape, FixedShapeConfig> = {
   circle: {
-    type: 'circle' as const,
+    type: 'circle',
     params: {
-      radius: 150
+      radius: 200
     }
   },
   square: {
-    type: 'square' as const,
+    type: 'square',
     params: {
       edgeLength: 200,
       cornerRadius: 0
     }
   },
   star: {
-    type: 'star' as const,
+    type: 'star',
     params: {
-      outerRadius: 150,
-      innerRadius: 75,
+      outerRadius: 200,
+      innerRadius: 100,
       points: 5
     }
   },
-  triangle: {
-    type: 'triangle' as const,
+  hexagon: {
+    type: 'hexagon',
     params: {
       sideLength: 200,
       cornerRadius: 0
     }
   },
-  oval: {
-    type: 'oval' as const,
+  ellipse: {
+    type: 'ellipse',
     params: {
       majorAxis: 200,
-      minorAxis: 150,
+      minorAxis: 100,
       rotation: 0
     }
   }
-} as const; 
+};
+
+export interface SpirographParams {
+  fixedShape: FixedShapeConfig;
+  movingShape: {
+    type: 'circle';
+    params: {
+      radius: number;
+    };
+  };
+  penDistance: number;
+  animationSpeed: number;
+  lineWidth: number;
+  color: string | GradientColor;
+}
+
+export type GradientColor = {
+  type: 'gradient';
+  colors: Array<{
+    color: string;
+    position: number;
+  }>;
+  angle: number;
+};
+
+export const DEFAULT_PARAMS: SpirographParams = {
+  fixedShape: FIXED_SHAPE_DEFAULTS.circle,
+  movingShape: {
+    type: 'circle',
+    params: {
+      radius: 50
+    }
+  },
+  penDistance: 0.5,
+  animationSpeed: 1,
+  lineWidth: 2,
+  color: '#000000'
+};
+
+export const GRADIENT_PRESETS: GradientColor[] = [
+  {
+    type: 'gradient',
+    colors: [
+      { color: '#FF8C42', position: 0 },
+      { color: '#FF5733', position: 0.33 },
+      { color: '#C70039', position: 0.66 },
+      { color: '#900C3F', position: 1 }
+    ],
+    angle: 45
+  },
+  {
+    type: 'gradient',
+    colors: [
+      { color: '#FF1493', position: 0 },
+      { color: '#00FF00', position: 0.33 },
+      { color: '#00FFFF', position: 0.66 },
+      { color: '#FF1493', position: 1 }
+    ],
+    angle: 45
+  },
+  {
+    type: 'gradient',
+    colors: [
+      { color: '#FF0000', position: 0 },
+      { color: '#FFFF00', position: 0.33 },
+      { color: '#FF00FF', position: 0.66 },
+      { color: '#FF0000', position: 1 }
+    ],
+    angle: 45
+  }
+]; 

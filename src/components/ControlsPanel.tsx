@@ -6,11 +6,12 @@ import {
   GradientColor, 
   FixedShape, 
   FIXED_SHAPE_DEFAULTS,
-  CircleConfig,
-  SquareConfig,
-  StarConfig,
-  TriangleConfig,
-  OvalConfig
+  CircleParams,
+  SquareParams,
+  StarParams,
+  HexagonParams,
+  EllipseParams,
+  FixedShapeConfig
 } from '../types';
 
 interface Props {
@@ -21,21 +22,6 @@ interface Props {
   onReset: () => void;
   onDownload: () => void;
 }
-
-const isCircleConfig = (config: { type: string }): config is CircleConfig => 
-  config.type === 'circle';
-
-const isSquareConfig = (config: { type: string }): config is SquareConfig =>
-  config.type === 'square';
-
-const isStarConfig = (config: { type: string }): config is StarConfig =>
-  config.type === 'star';
-
-const isTriangleConfig = (config: { type: string }): config is TriangleConfig =>
-  config.type === 'triangle';
-
-const isOvalConfig = (config: { type: string }): config is OvalConfig =>
-  config.type === 'oval';
 
 export const ControlsPanel = ({
   params,
@@ -55,227 +41,229 @@ export const ControlsPanel = ({
     });
   };
 
-  const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const solidColor: GradientColor = {
-      type: 'solid',
-      name: 'Custom',
-      colors: [event.target.value]
-    };
-    onParamsChange({
-      ...params,
-      color: solidColor
-    });
-  };
-
-  const handleGradientChange = (event: SelectChangeEvent<string>) => {
-    const selectedPreset = GRADIENT_PRESETS.find(preset => preset.name === event.target.value);
-    if (selectedPreset) {
-      onParamsChange({
-        ...params,
-        color: selectedPreset
-      });
-    }
-  };
-
-  const handleShapeTypeChange = (event: SelectChangeEvent<FixedShape>) => {
-    const newType = event.target.value as FixedShape;
-    const newShape = {
-      ...FIXED_SHAPE_DEFAULTS[newType]
-    };
-    onParamsChange({
-      ...params,
-      fixedShape: newShape
-    });
-  };
-
-  const handleShapeParamChange = (param: string) => (
+  const handleMovingCircleChange = (param: keyof typeof params.movingShape.params) => (
     _: Event,
     value: number | number[]
   ) => {
     onParamsChange({
       ...params,
-      fixedShape: {
-        ...params.fixedShape,
+      movingShape: {
+        ...params.movingShape,
         params: {
-          ...params.fixedShape.params,
+          ...params.movingShape.params,
           [param]: value as number
         }
       }
     });
   };
 
-  const currentColor = typeof params.color === 'string' ? params.color : params.color.colors[0];
-  const currentGradient = typeof params.color === 'string' ? 'Solid Color' : params.color.name;
+  const handleColorChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    onParamsChange({
+      ...params,
+      color: event.target.value
+    });
+  };
+
+  const handleGradientChange = (event: SelectChangeEvent<string>) => {
+    const index = parseInt(event.target.value);
+    if (index === 0) {
+      onParamsChange({
+        ...params,
+        color: '#000000'
+      });
+    } else {
+      const selectedPreset = GRADIENT_PRESETS[index - 1];
+      if (selectedPreset) {
+        onParamsChange({
+          ...params,
+          color: selectedPreset
+        });
+      }
+    }
+  };
+
+  const handleShapeTypeChange = (event: SelectChangeEvent<FixedShape>) => {
+    const newType = event.target.value as FixedShape;
+    onParamsChange({
+      ...params,
+      fixedShape: FIXED_SHAPE_DEFAULTS[newType]
+    });
+  };
+
+  const handleShapeParamChange = (param: string, value: number) => {
+    const currentShape = params.fixedShape;
+    let newParams: any;
+
+    switch (currentShape.type) {
+      case 'circle':
+        newParams = { ...currentShape.params, [param]: value } as CircleParams;
+        break;
+      case 'square':
+        newParams = { ...currentShape.params, [param]: value } as SquareParams;
+        break;
+      case 'star':
+        newParams = { ...currentShape.params, [param]: value } as StarParams;
+        break;
+      case 'hexagon':
+        newParams = { ...currentShape.params, [param]: value } as HexagonParams;
+        break;
+      case 'ellipse':
+        newParams = { ...currentShape.params, [param]: value } as EllipseParams;
+        break;
+      default:
+        return;
+    }
+
+    const newConfig: FixedShapeConfig = {
+      type: currentShape.type,
+      params: newParams
+    };
+
+    onParamsChange({
+      ...params,
+      fixedShape: newConfig
+    });
+  };
+
+  const currentColor = typeof params.color === 'string' ? params.color : params.color.colors[0].color;
+  const currentGradientIndex = typeof params.color === 'string' ? '0' : 
+    (GRADIENT_PRESETS.findIndex(preset => 
+      preset.colors.every((c, i) => {
+        const color = params.color;
+        return typeof color !== 'string' && c.color === color.colors[i].color;
+      })
+    ) + 1).toString();
 
   const renderShapeControls = () => {
-    const { fixedShape } = params;
-
-    if (isCircleConfig(fixedShape)) {
-      return (
-        <Box>
-          <Typography gutterBottom>
-            Radius: {fixedShape.params.radius}
-          </Typography>
-          <Slider
-            value={fixedShape.params.radius}
-            onChange={handleShapeParamChange('radius')}
-            min={50}
-            max={300}
-            step={1}
-          />
-        </Box>
-      );
-    }
-
-    if (isSquareConfig(fixedShape)) {
-      return (
-        <>
+    switch (params.fixedShape.type) {
+      case 'circle':
+        return (
           <Box>
-            <Typography gutterBottom>
-              Edge Length: {fixedShape.params.edgeLength}
-            </Typography>
+            <Typography>Radius</Typography>
             <Slider
-              value={fixedShape.params.edgeLength}
-              onChange={handleShapeParamChange('edgeLength')}
-              min={50}
-              max={400}
-              step={1}
-            />
-          </Box>
-          <Box>
-            <Typography gutterBottom>
-              Corner Radius: {fixedShape.params.cornerRadius}
-            </Typography>
-            <Slider
-              value={fixedShape.params.cornerRadius}
-              onChange={handleShapeParamChange('cornerRadius')}
-              min={0}
-              max={50}
-              step={1}
-            />
-          </Box>
-        </>
-      );
-    }
-
-    if (isStarConfig(fixedShape)) {
-      return (
-        <>
-          <Box>
-            <Typography gutterBottom>
-              Outer Radius: {fixedShape.params.outerRadius}
-            </Typography>
-            <Slider
-              value={fixedShape.params.outerRadius}
-              onChange={handleShapeParamChange('outerRadius')}
-              min={100}
-              max={300}
-              step={1}
-            />
-          </Box>
-          <Box>
-            <Typography gutterBottom>
-              Inner Radius: {fixedShape.params.innerRadius}
-            </Typography>
-            <Slider
-              value={fixedShape.params.innerRadius}
-              onChange={handleShapeParamChange('innerRadius')}
-              min={50}
-              max={150}
-              step={1}
-            />
-          </Box>
-          <Box>
-            <Typography gutterBottom>
-              Points: {fixedShape.params.points}
-            </Typography>
-            <Slider
-              value={fixedShape.params.points}
-              onChange={handleShapeParamChange('points')}
-              min={3}
-              max={12}
-              step={1}
-            />
-          </Box>
-        </>
-      );
-    }
-
-    if (isTriangleConfig(fixedShape)) {
-      return (
-        <>
-          <Box>
-            <Typography gutterBottom>
-              Side Length: {fixedShape.params.sideLength}
-            </Typography>
-            <Slider
-              value={fixedShape.params.sideLength}
-              onChange={handleShapeParamChange('sideLength')}
-              min={50}
-              max={400}
-              step={1}
-            />
-          </Box>
-          <Box>
-            <Typography gutterBottom>
-              Corner Radius: {fixedShape.params.cornerRadius}
-            </Typography>
-            <Slider
-              value={fixedShape.params.cornerRadius}
-              onChange={handleShapeParamChange('cornerRadius')}
-              min={0}
-              max={50}
-              step={1}
-            />
-          </Box>
-        </>
-      );
-    }
-
-    if (isOvalConfig(fixedShape)) {
-      return (
-        <>
-          <Box>
-            <Typography gutterBottom>
-              Major Axis: {fixedShape.params.majorAxis}
-            </Typography>
-            <Slider
-              value={fixedShape.params.majorAxis}
-              onChange={handleShapeParamChange('majorAxis')}
-              min={100}
-              max={400}
-              step={1}
-            />
-          </Box>
-          <Box>
-            <Typography gutterBottom>
-              Minor Axis: {fixedShape.params.minorAxis}
-            </Typography>
-            <Slider
-              value={fixedShape.params.minorAxis}
-              onChange={handleShapeParamChange('minorAxis')}
+              value={(params.fixedShape.params as CircleParams).radius}
+              onChange={(_, value) => handleShapeParamChange('radius', value as number)}
               min={50}
               max={300}
-              step={1}
+              step={10}
             />
           </Box>
+        );
+      case 'square':
+        return (
           <Box>
-            <Typography gutterBottom>
-              Rotation (degrees): {fixedShape.params.rotation}
-            </Typography>
+            <Typography>Edge Length</Typography>
             <Slider
-              value={fixedShape.params.rotation}
-              onChange={handleShapeParamChange('rotation')}
+              value={(params.fixedShape.params as SquareParams).edgeLength}
+              onChange={(_, value) => handleShapeParamChange('edgeLength', value as number)}
+              min={50}
+              max={300}
+              step={10}
+            />
+            <Typography>Corner Radius</Typography>
+            <Slider
+              value={(params.fixedShape.params as SquareParams).cornerRadius}
+              onChange={(_, value) => handleShapeParamChange('cornerRadius', value as number)}
               min={0}
-              max={360}
-              step={1}
+              max={50}
+              step={5}
             />
           </Box>
-        </>
-      );
+        );
+      case 'star':
+        return (
+          <>
+            <Box>
+              <Typography>Outer Radius</Typography>
+              <Slider
+                value={(params.fixedShape.params as StarParams).outerRadius}
+                onChange={(_, value) => handleShapeParamChange('outerRadius', value as number)}
+                min={100}
+                max={300}
+                step={10}
+              />
+            </Box>
+            <Box>
+              <Typography>Inner Radius</Typography>
+              <Slider
+                value={(params.fixedShape.params as StarParams).innerRadius}
+                onChange={(_, value) => handleShapeParamChange('innerRadius', value as number)}
+                min={50}
+                max={150}
+                step={10}
+              />
+            </Box>
+            <Box>
+              <Typography>Points</Typography>
+              <Slider
+                value={(params.fixedShape.params as StarParams).points}
+                onChange={(_, value) => handleShapeParamChange('points', value as number)}
+                min={3}
+                max={12}
+                step={1}
+              />
+            </Box>
+          </>
+        );
+      case 'hexagon':
+        return (
+          <Box>
+            <Typography>Side Length</Typography>
+            <Slider
+              value={(params.fixedShape.params as HexagonParams).sideLength}
+              onChange={(_, value) => handleShapeParamChange('sideLength', value as number)}
+              min={50}
+              max={400}
+              step={10}
+            />
+            <Typography>Corner Radius</Typography>
+            <Slider
+              value={(params.fixedShape.params as HexagonParams).cornerRadius}
+              onChange={(_, value) => handleShapeParamChange('cornerRadius', value as number)}
+              min={0}
+              max={50}
+              step={5}
+            />
+          </Box>
+        );
+      case 'ellipse':
+        return (
+          <>
+            <Box>
+              <Typography>Major Axis</Typography>
+              <Slider
+                value={(params.fixedShape.params as EllipseParams).majorAxis}
+                onChange={(_, value) => handleShapeParamChange('majorAxis', value as number)}
+                min={100}
+                max={400}
+                step={10}
+              />
+            </Box>
+            <Box>
+              <Typography>Minor Axis</Typography>
+              <Slider
+                value={(params.fixedShape.params as EllipseParams).minorAxis}
+                onChange={(_, value) => handleShapeParamChange('minorAxis', value as number)}
+                min={50}
+                max={300}
+                step={10}
+              />
+            </Box>
+            <Box>
+              <Typography>Rotation (degrees)</Typography>
+              <Slider
+                value={(params.fixedShape.params as EllipseParams).rotation}
+                onChange={(_, value) => handleShapeParamChange('rotation', value as number)}
+                min={0}
+                max={360}
+                step={1}
+              />
+            </Box>
+          </>
+        );
+      default:
+        return null;
     }
-
-    return null;
   };
 
   return (
@@ -318,8 +306,8 @@ export const ControlsPanel = ({
               <MenuItem value="circle">Circle</MenuItem>
               <MenuItem value="square">Square</MenuItem>
               <MenuItem value="star">Star</MenuItem>
-              <MenuItem value="triangle">Triangle</MenuItem>
-              <MenuItem value="oval">Oval</MenuItem>
+              <MenuItem value="hexagon">Hexagon</MenuItem>
+              <MenuItem value="ellipse">Ellipse</MenuItem>
             </Select>
           </FormControl>
           
@@ -338,38 +326,29 @@ export const ControlsPanel = ({
           </Typography>
           <FormControl fullWidth>
             <Select
-              value={currentGradient}
+              value={currentGradientIndex}
               onChange={handleGradientChange}
               sx={{ mb: 2 }}
             >
-              {GRADIENT_PRESETS.map((preset) => (
-                <MenuItem key={preset.name} value={preset.name}>
+              <MenuItem value="0">Solid Color</MenuItem>
+              {GRADIENT_PRESETS.map((preset, index) => (
+                <MenuItem key={index} value={index.toString()}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {preset.type === 'gradient' ? (
-                      <Box
-                        sx={{
-                          width: 50,
-                          height: 20,
-                          background: `linear-gradient(to right, ${preset.colors.join(', ')})`
-                        }}
-                      />
-                    ) : (
-                      <Box
-                        sx={{
-                          width: 50,
-                          height: 20,
-                          bgcolor: preset.colors[0]
-                        }}
-                      />
-                    )}
-                    <Typography>{preset.name}</Typography>
+                    <Box
+                      sx={{
+                        width: 50,
+                        height: 20,
+                        background: `linear-gradient(${preset.angle}deg, ${preset.colors.map(c => c.color).join(', ')})`
+                      }}
+                    />
+                    <Typography>Gradient {index + 1}</Typography>
                   </Box>
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          {currentGradient === 'Solid Color' && (
+          {currentGradientIndex === '0' && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <input
                 type="color"
@@ -398,11 +377,11 @@ export const ControlsPanel = ({
           </Typography>
           <Box>
             <Typography gutterBottom>
-              Radius (r): {params.r}
+              Radius: {params.movingShape.params.radius}
             </Typography>
             <Slider
-              value={params.r}
-              onChange={handleSliderChange('r')}
+              value={params.movingShape.params.radius}
+              onChange={handleMovingCircleChange('radius')}
               min={10}
               max={100}
               step={1}
@@ -411,11 +390,11 @@ export const ControlsPanel = ({
 
           <Box sx={{ mt: 2 }}>
             <Typography gutterBottom>
-              Pen Distance (d): {params.d}
+              Pen Distance: {params.penDistance}
             </Typography>
             <Slider
-              value={params.d}
-              onChange={handleSliderChange('d')}
+              value={params.penDistance}
+              onChange={handleSliderChange('penDistance')}
               min={0}
               max={150}
               step={1}
@@ -430,11 +409,11 @@ export const ControlsPanel = ({
           </Typography>
           <Box>
             <Typography gutterBottom>
-              Animation Speed: {params.speed.toFixed(3)}
+              Animation Speed: {params.animationSpeed.toFixed(3)}
             </Typography>
             <Slider
-              value={params.speed}
-              onChange={handleSliderChange('speed')}
+              value={params.animationSpeed}
+              onChange={handleSliderChange('animationSpeed')}
               min={0.001}
               max={0.1}
               step={0.001}
