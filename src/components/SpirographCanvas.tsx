@@ -149,6 +149,8 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
 
+      console.log('Container dimensions:', { containerWidth, containerHeight });
+
       // Set up main canvas
       canvas.width = containerWidth;
       canvas.height = containerHeight;
@@ -165,6 +167,14 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const fixedShapeRadius = getFixedShapeRadius(params.fixedShape);
       const maxDimension = Math.min(canvas.width, canvas.height);
       const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of visible canvas size
+      
+      console.log('Canvas setup:', {
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        fixedShapeRadius,
+        maxDimension,
+        initialScale
+      });
       
       // Set initial scale
       setScale(initialScale);
@@ -198,6 +208,12 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     ctx.save();
     ctx.strokeStyle = 'rgba(128, 128, 128, 0.2)';
     ctx.lineWidth = 1;
+
+    console.log('Drawing fixed shape:', {
+      type: fixedShape.type,
+      params: fixedShape.params,
+      transform: ctx.getTransform()
+    });
 
     switch (fixedShape.type) {
       case 'circle':
@@ -305,6 +321,14 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     // Calculate center of moving circle
     const centerX = (R - movingRadius) * Math.cos(currentAngle);
     const centerY = (R - movingRadius) * Math.sin(currentAngle);
+
+    console.log('Drawing moving circle:', {
+      centerX,
+      centerY,
+      movingRadius,
+      currentAngle,
+      transform: ctx.getTransform()
+    });
 
     // Draw moving circle
     ctx.save();
@@ -526,8 +550,22 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       overlayCtx.save();
 
       // Center the canvas
-      ctx.translate(canvasRef.current!.width / 2, canvasRef.current!.height / 2);
-      overlayCtx.translate(overlayCanvasRef.current.width / 2, overlayCanvasRef.current.height / 2);
+      const canvasWidth = canvasRef.current!.width;
+      const canvasHeight = canvasRef.current!.height;
+      const overlayWidth = overlayCanvasRef.current.width;
+      const overlayHeight = overlayCanvasRef.current.height;
+
+      // Draw center point for debugging
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = 'red';
+      ctx.beginPath();
+      ctx.arc(canvasWidth / 2, canvasHeight / 2, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.translate(canvasWidth / 2, canvasHeight / 2);
+      overlayCtx.translate(overlayWidth / 2, overlayHeight / 2);
 
       // Apply scale
       ctx.scale(scale, scale);
