@@ -145,22 +145,29 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     overlayContextRef.current = overlayContext;
 
     const resizeCanvas = () => {
+      // Get the actual canvas container dimensions
+      const container = canvas.parentElement;
+      if (!container) return;
+      
+      const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
+
       // Set up main canvas
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = containerWidth;
+      canvas.height = containerHeight;
       context.translate(canvas.width / 2, canvas.height / 2);
       context.fillStyle = '#ffffff';
       context.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
 
       // Set up overlay canvas
-      overlayCanvas.width = window.innerWidth;
-      overlayCanvas.height = window.innerHeight;
+      overlayCanvas.width = containerWidth;
+      overlayCanvas.height = containerHeight;
       overlayContext.translate(overlayCanvas.width / 2, overlayCanvas.height / 2);
 
       // Calculate initial scale to fit the shape
       const fixedShapeRadius = getFixedShapeRadius(params.fixedShape);
-      const maxDimension = Math.max(canvas.width, canvas.height);
-      const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of screen size
+      const maxDimension = Math.min(canvas.width, canvas.height);
+      const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of visible canvas size
       
       // Center the shape
       setTransform({
@@ -211,15 +218,21 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       }));
     };
 
+    // Initial setup
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+
+    // Create a ResizeObserver to watch for container size changes
+    const resizeObserver = new ResizeObserver(resizeCanvas);
+    resizeObserver.observe(canvas.parentElement!);
+
+    // Add event listeners
     canvas.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
     canvas.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
-      window.removeEventListener('resize', resizeCanvas);
+      resizeObserver.disconnect();
       canvas.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
