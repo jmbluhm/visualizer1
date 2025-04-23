@@ -72,10 +72,11 @@ const getFixedShapeRadius = (fixedShape: FixedShapeConfig): number => {
 export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params, isPlaying }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contextRef = useRef<CanvasRenderingContext2D | null>(null);
-  const angleRef = useRef(0);
+  const angleRef = useRef<number>(0);
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
-  const frameCountRef = useRef(0);
-  const requestRef = useRef<number>();
+  const frameCountRef = useRef<number>(0);
+  const lastTimeRef = useRef<number>(0);
+  const requestRef = useRef<number | undefined>(undefined);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -133,6 +134,13 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       const ctx = contextRef.current;
       if (!ctx) return;
 
+      // Calculate delta time for smooth animation
+      if (!lastTimeRef.current) {
+        lastTimeRef.current = timestamp;
+      }
+      const deltaTime = timestamp - lastTimeRef.current;
+      lastTimeRef.current = timestamp;
+
       const { movingShape, penDistance, fixedShape } = params;
       const movingRadius = movingShape.params.radius;
       const R = getFixedShapeRadius(fixedShape);
@@ -142,11 +150,11 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
         ctx.rotate(fixedShape.params.rotation * Math.PI / 180);
       }
 
-      frameCountRef.current++;
-
-      // Calculate the current position
-      const t = frameCountRef.current / 100;
+      // Use timestamp for smoother animation
+      const t = deltaTime * 0.001; // Convert to seconds
       const interpolatedAngle = angleRef.current + (params.animationSpeed * t);
+      angleRef.current = interpolatedAngle;
+
       const x = (R - movingRadius) * Math.cos(interpolatedAngle) + penDistance * Math.cos(((R - movingRadius) / movingRadius) * interpolatedAngle);
       const y = (R - movingRadius) * Math.sin(interpolatedAngle) - penDistance * Math.sin(((R - movingRadius) / movingRadius) * interpolatedAngle);
 
@@ -172,7 +180,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     };
 
     if (isPlaying) {
-      requestRef.current = requestAnimationFrame((time) => animate(time));
+      requestRef.current = requestAnimationFrame(animate);
     }
 
     return () => {
