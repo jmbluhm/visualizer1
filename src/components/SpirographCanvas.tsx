@@ -156,6 +156,18 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       overlayCanvas.width = window.innerWidth;
       overlayCanvas.height = window.innerHeight;
       overlayContext.translate(overlayCanvas.width / 2, overlayCanvas.height / 2);
+
+      // Calculate initial scale to fit the shape
+      const fixedShapeRadius = getFixedShapeRadius(params.fixedShape);
+      const maxDimension = Math.max(canvas.width, canvas.height);
+      const initialScale = (maxDimension * 0.4) / (fixedShapeRadius * 2); // 40% of screen size
+      
+      // Center the shape
+      setTransform({
+        x: 0,
+        y: 0,
+        scale: initialScale
+      });
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -213,7 +225,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
       window.removeEventListener('mouseup', handleMouseUp);
       canvas.removeEventListener('wheel', handleWheel);
     };
-  }, []);
+  }, [params]);
 
   const drawFixedShape = (ctx: CanvasRenderingContext2D, fixedShape: FixedShapeConfig) => {
     ctx.save();
