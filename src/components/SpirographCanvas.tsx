@@ -82,10 +82,29 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     const ctx = contextRef.current;
     if (!canvas || !ctx) return;
 
-    ctx.clearRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+    // Clear the entire canvas
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(-canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    // Reset drawing state but keep angle for continuous drawing
     lastPointRef.current = null;
+
+    // Redraw guide shapes
+    if (params.fixedShape.type === 'ellipse') {
+      ctx.save();
+      ctx.rotate(params.fixedShape.params.rotation * Math.PI / 180);
+    }
+    
+    drawFixedShape(ctx, params.fixedShape);
+    drawMovingCircle(ctx, angleRef.current);
+
+    if (params.fixedShape.type === 'ellipse') {
+      ctx.restore();
+    }
   };
 
   const downloadImage = () => {
@@ -297,12 +316,38 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
       const { fixedShape } = params;
 
+      // Clear the entire canvas and redraw
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      
+      // Save the current drawing
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      const tempCtx = tempCanvas.getContext('2d');
+      if (tempCtx) {
+        tempCtx.drawImage(canvas, 0, 0);
+      }
+
+      // Clear and fill background
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      // Restore the previous drawing
+      if (tempCtx) {
+        ctx.drawImage(tempCanvas, 0, 0);
+      }
+
       if (fixedShape.type === 'ellipse') {
         ctx.save();
         ctx.rotate(fixedShape.params.rotation * Math.PI / 180);
       }
 
-      // Draw guide shapes
+      // Draw guide shapes (will be fresh each frame)
       drawFixedShape(ctx, fixedShape);
       drawMovingCircle(ctx, angleRef.current);
 
@@ -319,7 +364,7 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
 
       // Interpolate points for smoother lines at high speeds
       if (lastPointRef.current) {
-        const steps = Math.max(1, Math.ceil(params.animationSpeed * 20)); // More interpolation points at higher speeds
+        const steps = Math.max(1, Math.ceil(params.animationSpeed * 20));
         ctx.beginPath();
         ctx.moveTo(lastPointRef.current.x, lastPointRef.current.y);
 
