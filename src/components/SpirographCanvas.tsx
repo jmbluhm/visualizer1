@@ -118,10 +118,38 @@ export const SpirographCanvas = forwardRef<SpirographCanvasRef, Props>(({ params
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Convert canvas to blob
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+
+      // Check if we're on a mobile device
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile && navigator.share) {
+        // Use native share sheet on mobile
+        const file = new File([blob], 'spirograph.png', { type: 'image/png' });
+        navigator.share({
+          files: [file],
+          title: 'Spirograph Drawing',
+          text: 'Check out my spirograph drawing!'
+        }).catch((error) => {
+          console.error('Error sharing:', error);
+          // Fallback to regular download if sharing fails
+          downloadWithLink(blob);
+        });
+      } else {
+        // Regular download for desktop
+        downloadWithLink(blob);
+      }
+    }, 'image/png');
+  };
+
+  const downloadWithLink = (blob: Blob) => {
     const link = document.createElement('a');
     link.download = 'spirograph.png';
-    link.href = canvas.toDataURL();
+    link.href = URL.createObjectURL(blob);
     link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   useImperativeHandle(ref, () => ({
